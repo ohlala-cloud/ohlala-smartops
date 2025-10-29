@@ -10,27 +10,33 @@
 
 ## Overview
 
-[TODO: Add project overview and key features]
+Ohlala SmartOps is an AI-powered EC2 instance management bot that integrates with Microsoft Teams to provide comprehensive monitoring, troubleshooting, and management capabilities for your AWS infrastructure. Using Claude (via AWS Bedrock), the bot interprets natural language commands and executes them securely via AWS Systems Manager.
+
+Perfect for DevOps teams, system administrators, and cloud engineers who want to manage EC2 instances directly from their chat platform without switching context to the AWS Console.
 
 ## Features
 
 - **Natural Language Interface**: Interact with AWS EC2 using natural language via Microsoft Teams
-- **AI-Powered**: Leverages Claude (via AWS Bedrock) for intelligent command interpretation
-- **Secure**: Built with security best practices and IAM role-based access control
-- **Type-Safe**: Fully typed Python codebase with strict MyPy checking
-- **Well-Tested**: Comprehensive test suite with high coverage requirements
+- **AI-Powered**: Leverages Claude Sonnet 4.5 via AWS Bedrock for intelligent command interpretation
+- **Automatic Discovery**: Finds all SSM-enabled EC2 instances across regions
+- **Health Monitoring**: Real-time CPU, RAM, and disk metrics with visual charts
+- **Remote Management**: Execute shell/PowerShell commands via SSM with approval workflows
+- **Multi-Language Support**: Available in English, French, German, and Spanish
+- **MCP Integration**: Uses Model Context Protocol for AWS operations and documentation access
+- **Secure**: Built with security best practices, IAM role-based access control, and audit logging
+- **Type-Safe**: Fully typed Python 3.13+ codebase with strict MyPy checking
+- **Well-Tested**: Comprehensive test suite with 80%+ coverage requirements
 
 ## Quick Start
-
-[TODO: Add quick start instructions]
-
-## Installation
 
 ### Prerequisites
 
 - Python 3.13 or higher
-- AWS Account with Bedrock access
-- Microsoft Teams workspace
+- AWS Account with Bedrock access (Claude model access required)
+- Microsoft Teams workspace with app installation permissions
+- Azure Bot registration (for Teams integration)
+
+## Installation
 
 ### Development Setup
 
@@ -70,23 +76,99 @@ cp .env.example .env
 
 ## Configuration
 
-[TODO: Add configuration details]
+See `.env.example` for all configuration options. Key settings include:
+
+- **AWS Configuration**: Region, credentials (or use IAM roles)
+- **Microsoft Teams**: App ID, password, tenant ID
+- **Bedrock**: Guardrails configuration (optional)
+- **MCP Servers**: URLs for AWS API and knowledge servers
+- **Rate Limiting**: Throttling settings to prevent API quota exhaustion
+- **Audit Logging**: Compliance and security logging options
+
+All configuration is loaded from environment variables for 12-factor app compliance.
 
 ## Usage
 
-[TODO: Add usage examples]
-
 ### Basic Commands
 
-[TODO: Add command examples]
+Once deployed and added to your Teams workspace, you can interact with the bot:
 
-### Advanced Features
+```
+@Ohlala SmartOps help
+@Ohlala SmartOps list instances
+@Ohlala SmartOps show i-1234567890abcdef0
+@Ohlala SmartOps health i-1234567890abcdef0
+```
 
-[TODO: Add advanced features documentation]
+### Natural Language Commands
+
+The bot understands natural language through Claude:
+
+```
+@Ohlala SmartOps what instances are running in us-east-1?
+@Ohlala SmartOps show me the CPU usage for my web servers
+@Ohlala SmartOps check disk space on i-1234567890abcdef0
+@Ohlala SmartOps restart the nginx service on the production server
+```
+
+### Approval Workflows
+
+Sensitive operations (like executing commands) require approval:
+
+1. User requests command execution
+2. Bot sends approval card to Teams channel
+3. Authorized user approves/denies
+4. Bot executes and reports results
 
 ## Architecture
 
-[TODO: Add architecture diagram and explanation]
+The bot uses a multi-container architecture designed for deployment on AWS ECS:
+
+```
+┌─────────────────┐
+│ Microsoft Teams │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  API Gateway    │  (Optional WAF protection)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│         ECS Cluster                 │
+│  ┌─────────────────────────────┐   │
+│  │  Main Bot Container         │   │
+│  │  - FastAPI app              │   │
+│  │  - Teams Bot Framework      │   │
+│  │  - Bedrock client           │   │
+│  │  - Command orchestration    │   │
+│  └───────┬─────────────────────┘   │
+│          │                          │
+│  ┌───────▼─────────────────────┐   │
+│  │  MCP AWS API Container      │   │
+│  │  - AWS API operations       │   │
+│  │  - EC2, SSM, CloudWatch     │   │
+│  └─────────────────────────────┘   │
+└─────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│   AWS Services  │
+│  - EC2          │
+│  - SSM          │
+│  - Bedrock      │
+│  - CloudWatch   │
+└─────────────────┘
+```
+
+**Key Components:**
+
+- **Main Bot Container**: Handles Teams webhooks, orchestrates commands, manages conversations
+- **MCP AWS API Server**: Provides secure AWS API access via Model Context Protocol
+- **Bedrock Integration**: Uses Claude for natural language understanding and response generation
+- **In-Memory Storage**: Conversation state and command history (current session only)
+- **CloudWatch**: Comprehensive metrics and logging
 
 ## Development
 
@@ -141,7 +223,17 @@ This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participatin
 
 ## Security
 
-[TODO: Add security policy and reporting instructions]
+Security is a top priority for Ohlala SmartOps:
+
+- **Least Privilege IAM**: All AWS operations use least-privilege IAM policies
+- **Approval Workflows**: Sensitive commands require explicit approval
+- **Audit Logging**: All actions are logged for compliance and security review
+- **Secrets Management**: Credentials stored in AWS Secrets Manager (not in code)
+- **Network Security**: Designed for deployment in private subnets with security groups
+- **Input Validation**: All user inputs validated and sanitized
+- **Rate Limiting**: Built-in throttling to prevent abuse and quota exhaustion
+
+For security issues, please email contact@ohlala-cloud.com or open a confidential security advisory on GitHub.
 
 ## License
 
@@ -155,11 +247,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-[TODO: Add support information]
+- **Documentation**: Check [CLAUDE.md](CLAUDE.md) for development guidelines
+- **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/ohlala-cloud/ohlala-smartops/issues)
+- **Discussions**: Ask questions in [GitHub Discussions](https://github.com/ohlala-cloud/ohlala-smartops/discussions)
+- **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines
 
 ## Roadmap
 
-[TODO: Add project roadmap]
+- [x] Core EC2 instance management
+- [x] Health monitoring with metrics
+- [x] SSM command execution with approvals
+- [x] Multi-language support (EN, FR, DE, ES)
+- [x] MCP integration for AWS operations
+- [x] Support for additional AWS services (RDS, Lambda, etc.)
+- [ ] Cost optimization recommendations (basic)
+- [ ] Google integration
+- [ ] Automated remediation actions
 
 ---
 
