@@ -6,23 +6,23 @@
 # More info: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Default owners for everything in the repo
-* @ohlala-cloud/ohlala-smartops-maintainers
+* @ohlala-cloud/smartops-team
 
 # Documentation
-*.md @ohlala-cloud/ohlala-smartops-maintainers
-/docs/ @ohlala-cloud/ohlala-smartops-maintainers
+*.md @ohlala-cloud/smartops-team
+/docs/ @ohlala-cloud/smartops-team
 
 # Configuration files
-/.github/ @ohlala-cloud/ohlala-smartops-maintainers
-/pyproject.toml @ohlala-cloud/ohlala-smartops-maintainers
-/.pre-commit-config.yaml @ohlala-cloud/ohlala-smartops-maintainers
-/.editorconfig @ohlala-cloud/ohlala-smartops-maintainers
+/.github/ @ohlala-cloud/smartops-team
+/pyproject.toml @ohlala-cloud/smartops-team
+/.pre-commit-config.yaml @ohlala-cloud/smartops-team
+/.editorconfig @ohlala-cloud/smartops-team
 
 # Source code
-/src/ @ohlala-cloud/ohlala-smartops-maintainers
+/src/ @ohlala-cloud/smartops-team
 
 # Tests
-/tests/ @ohlala-cloud/ohlala-smartops-maintainers
+/tests/ @ohlala-cloud/smartops-team
 
 # CI/CD
-/.github/workflows/ @ohlala-cloud/ohlala-smartops-maintainers
+/.github/workflows/ @ohlala-cloud/smartops-team
