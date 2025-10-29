@@ -1,0 +1,28 @@
+# CODEOWNERS file
+# This file defines code ownership for the Ohlala SmartOps project.
+# Code owners are automatically requested for review when someone opens a pull request
+# that modifies code that they own.
+#
+# More info: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @ohlala-cloud/ohlala-smartops-maintainers
+
+# Documentation
+*.md @ohlala-cloud/ohlala-smartops-maintainers
+/docs/ @ohlala-cloud/ohlala-smartops-maintainers
+
+# Configuration files
+/.github/ @ohlala-cloud/ohlala-smartops-maintainers
+/pyproject.toml @ohlala-cloud/ohlala-smartops-maintainers
+/.pre-commit-config.yaml @ohlala-cloud/ohlala-smartops-maintainers
+/.editorconfig @ohlala-cloud/ohlala-smartops-maintainers
+
+# Source code
+/src/ @ohlala-cloud/ohlala-smartops-maintainers
+
+# Tests
+/tests/ @ohlala-cloud/ohlala-smartops-maintainers
+
+# CI/CD
+/.github/workflows/ @ohlala-cloud/ohlala-smartops-maintainers
