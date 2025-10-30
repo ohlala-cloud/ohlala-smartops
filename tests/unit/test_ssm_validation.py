@@ -87,7 +87,7 @@ class TestValidateSSMCommands:
         # Create a command longer than SSM_OUTPUT_LIMIT // 2
         long_command = "echo " + "x" * 15000
         commands = [long_command]
-        is_valid, error_msg = validate_ssm_commands(commands)
+        is_valid, _ = validate_ssm_commands(commands)
 
         # Should still be valid, just warned
         assert is_valid is True
@@ -95,7 +95,7 @@ class TestValidateSSMCommands:
     def test_handles_escaped_quotes_as_warning(self) -> None:
         """Test that escaped quotes generate warnings but don't fail."""
         commands = ['echo \\"test\\" more \\"quotes\\"']
-        is_valid, error_msg = validate_ssm_commands(commands)
+        is_valid, _ = validate_ssm_commands(commands)
 
         # Should be valid, just warned
         assert is_valid is True
@@ -281,7 +281,7 @@ class TestSSMValidationIntegration:
     def test_edge_case_empty_string_command(self) -> None:
         """Test handling of empty string command."""
         commands = [""]
-        is_valid, error_msg = validate_ssm_commands(commands)
+        is_valid, _ = validate_ssm_commands(commands)
 
         # Empty string command should be valid (will just do nothing)
         assert is_valid is True

@@ -41,7 +41,7 @@ class TestValidateAndFixPowershell:
     def test_does_not_break_legitimate_triple_quotes(self) -> None:
         """Test that legitimate triple quotes are not broken."""
         commands = ['Write-Output """test"""']
-        fixed, issues = validate_and_fix_powershell(commands)
+        fixed, _ = validate_and_fix_powershell(commands)
 
         # Should not modify legitimate triple quotes
         assert len(fixed) == 1
@@ -68,7 +68,7 @@ class TestValidateAndFixPowershell:
     def test_handles_variable_interpolation(self) -> None:
         """Test that variable interpolation doesn't trigger false warnings."""
         commands = ['Write-Output "Value: $($variable)"']
-        fixed, issues = validate_and_fix_powershell(commands)
+        fixed, _ = validate_and_fix_powershell(commands)
 
         assert len(fixed) == 1
         # Should not complain about odd quotes due to interpolation
@@ -111,7 +111,7 @@ class TestValidateAndFixPowershell:
         """Test that command content is preserved during fixing."""
         original = 'Write-Output "Important data: 12345""'
         commands = [original]
-        fixed, issues = validate_and_fix_powershell(commands)
+        fixed, _ = validate_and_fix_powershell(commands)
 
         assert "12345" in fixed[0]
         assert "Important data" in fixed[0]
@@ -119,7 +119,7 @@ class TestValidateAndFixPowershell:
     def test_handles_complex_powershell_syntax(self) -> None:
         """Test handling complex PowerShell syntax."""
         commands = ['Get-Process | Where-Object {$_.CPU -gt 10} | Select-Object Name, CPU""']
-        fixed, issues = validate_and_fix_powershell(commands)
+        fixed, _ = validate_and_fix_powershell(commands)
 
         assert len(fixed) == 1
         assert "Get-Process" in fixed[0]
@@ -229,7 +229,7 @@ class TestPowershellEdgeCases:
     def test_handles_special_characters_in_commands(self) -> None:
         """Test handling commands with special characters."""
         commands = ['Write-Output "Test\nNewline\tTab""']
-        fixed, issues = validate_and_fix_powershell(commands)
+        fixed, _ = validate_and_fix_powershell(commands)
 
         assert len(fixed) == 1
         assert "\\n" in fixed[0] or "\n" in fixed[0]
@@ -238,7 +238,7 @@ class TestPowershellEdgeCases:
         """Test handling very long command strings."""
         long_command = 'Write-Output "' + "x" * 1000 + '""'
         commands = [long_command]
-        fixed, issues = validate_and_fix_powershell(commands)
+        fixed, _ = validate_and_fix_powershell(commands)
 
         assert len(fixed) == 1
         assert len(fixed[0]) > 1000
@@ -246,7 +246,7 @@ class TestPowershellEdgeCases:
     def test_handles_unicode_in_commands(self) -> None:
         """Test handling Unicode characters."""
         commands = ['Write-Output "Hello 世界""']
-        fixed, issues = validate_and_fix_powershell(commands)
+        fixed, _ = validate_and_fix_powershell(commands)
 
         assert len(fixed) == 1
         assert "世界" in fixed[0]
@@ -254,7 +254,7 @@ class TestPowershellEdgeCases:
     def test_preserves_command_order(self) -> None:
         """Test that command order is preserved."""
         commands = ['Command1""', 'Command2""', 'Command3""']
-        fixed, issues = validate_and_fix_powershell(commands)
+        fixed, _ = validate_and_fix_powershell(commands)
 
         assert len(fixed) == 3
         assert "Command1" in fixed[0]
