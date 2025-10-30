@@ -177,6 +177,15 @@ module = [
 ]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "pydantic_settings"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "ohlala_smartops.config.settings"
+# Allow subclassing Pydantic BaseSettings which may have Any type
+disallow_subclassing_any = false
+
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
