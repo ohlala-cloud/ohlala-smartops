@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ohlala-smartops"
-version = "0.1.0"
+version = "1.1.0"
 description = "AI-powered AWS EC2 management bot using Claude (Bedrock) and Microsoft Teams"
 readme = "README.md"
 requires-python = ">=3.13"

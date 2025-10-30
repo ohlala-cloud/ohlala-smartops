@@ -18,4 +18,4 @@ def test_get_version_returns_string() -> None:
 
 def test_version_matches_expected() -> None:
     """Test that version matches expected value."""
-    assert __version__ == "0.1.0"
+    assert __version__ == "1.1.0"
