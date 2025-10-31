@@ -4,7 +4,7 @@ This module defines Pydantic models for tracking conversation state, user inform
 and team context in Microsoft Teams conversations.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -119,20 +119,22 @@ class ConversationContext(BaseModel):
     team: TeamInfo | None = Field(None, description="Team information (if applicable)")
     channel: ChannelInfo | None = Field(None, description="Channel information (if applicable)")
     service_url: str = Field(..., min_length=1, description="Teams service URL")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(tz=UTC), description="Creation timestamp"
+    )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow, description="Last update timestamp"
+        default_factory=lambda: datetime.now(tz=UTC), description="Last update timestamp"
     )
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
     @field_validator("conversation_type")
     @classmethod
-    def validate_conversation_type(cls, v: ConversationType, info: Any) -> ConversationType:
+    def validate_conversation_type(cls, v: ConversationType, _info: Any) -> ConversationType:
         """Validate conversation type matches team/channel presence.
 
         Args:
             v: Conversation type to validate.
-            info: Validation context with other field values.
+            _info: Validation context with other field values.
 
         Returns:
             Validated conversation type.
@@ -145,7 +147,7 @@ class ConversationContext(BaseModel):
 
     def update_timestamp(self) -> None:
         """Update the updated_at timestamp to current UTC time."""
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(tz=UTC)
 
 
 class ConversationState(BaseModel):
@@ -173,9 +175,11 @@ class ConversationState(BaseModel):
     history: list[dict[str, Any]] = Field(
         default_factory=list, description="Conversation history (max 10 turns)"
     )
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(tz=UTC), description="Creation timestamp"
+    )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow, description="Last update timestamp"
+        default_factory=lambda: datetime.now(tz=UTC), description="Last update timestamp"
     )
 
     def add_to_history(self, role: str, content: str) -> None:
@@ -186,7 +190,7 @@ class ConversationState(BaseModel):
             content: Message content.
         """
         self.history.append(
-            {"role": role, "content": content, "timestamp": datetime.utcnow().isoformat()}
+            {"role": role, "content": content, "timestamp": datetime.now(tz=UTC).isoformat()}
         )
 
         # Keep only the last 10 turns
@@ -194,10 +198,10 @@ class ConversationState(BaseModel):
             self.history = self.history[-10:]
 
         self.turn_count += 1
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(tz=UTC)
 
     def clear_pending(self) -> None:
         """Clear pending command and approval."""
         self.pending_command = None
         self.pending_approval_id = None
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(tz=UTC)

@@ -14,6 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
+from ohlala_smartops.bot.health import router as health_router
+from ohlala_smartops.bot.messages import router as messages_router
 from ohlala_smartops.config.settings import Settings
 from ohlala_smartops.version import __version__
 
@@ -26,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     """Manage application lifespan events.
 
     This context manager handles startup and shutdown events for the FastAPI application,
@@ -92,12 +94,12 @@ def create_app() -> FastAPI:
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     # Add custom exception handler
-    @app.exception_handler(Exception)
-    async def global_exception_handler(request: Any, exc: Exception) -> JSONResponse:
+    @app.exception_handler(Exception)  # type: ignore[misc]
+    async def global_exception_handler(_request: Any, exc: Exception) -> JSONResponse:
         """Handle uncaught exceptions globally.
 
         Args:
-            request: FastAPI request object.
+            _request: FastAPI request object (unused but required by FastAPI).
             exc: Exception that was raised.
 
         Returns:
@@ -113,9 +115,6 @@ def create_app() -> FastAPI:
         )
 
     # Register routers
-    from ohlala_smartops.bot.health import router as health_router
-    from ohlala_smartops.bot.messages import router as messages_router
-
     app.include_router(health_router, tags=["health"])
     app.include_router(messages_router, prefix="/api/messages", tags=["messages"])
 

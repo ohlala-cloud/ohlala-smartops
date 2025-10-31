@@ -133,24 +133,24 @@ class OhlalaActivityHandler(ActivityHandler):  # type: ignore[misc]
             logger.error(f"Error handling invoke activity: {e}", exc_info=True)
             return {"status": 500, "body": {"error": "Internal error"}}
 
-    async def on_teams_signin_verify_state(self, turn_context: TurnContext) -> None:
+    async def on_teams_signin_verify_state(self, _turn_context: TurnContext) -> None:
         """Handle Teams signin verification.
 
         This method is called during OAuth authentication flows.
 
         Args:
-            turn_context: Turn context for the current activity.
+            _turn_context: Turn context for the current activity.
         """
         logger.info("Handling Teams signin verification")
         # TODO: Implement OAuth signin verification if needed
 
-    async def on_message_reaction_activity(self, turn_context: TurnContext) -> None:
+    async def on_message_reaction_activity(self, _turn_context: TurnContext) -> None:
         """Handle message reaction activities.
 
         This method is called when a user reacts to a message (like, heart, etc.).
 
         Args:
-            turn_context: Turn context for the current activity.
+            _turn_context: Turn context for the current activity.
         """
         logger.info("Message reaction received")
         # TODO: Implement reaction handling if needed
@@ -197,7 +197,6 @@ class OhlalaActivityHandler(ActivityHandler):  # type: ignore[misc]
             channel=None,  # TODO: Extract from channel_data if available
             service_url=activity.service_url,
         )
-
 
     def _remove_mentions(self, text: str, activity: Activity) -> str:
         """Remove @mentions from message text.

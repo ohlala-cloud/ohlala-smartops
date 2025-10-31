@@ -27,7 +27,7 @@ _handler = OhlalaActivityHandler()
 _state_manager = create_state_manager("memory")
 
 
-@router.post("/messages", status_code=status.HTTP_200_OK)
+@router.post("/messages", status_code=status.HTTP_200_OK)  # type: ignore[misc]
 async def handle_messages(
     request: Request,
     authorization: str = Header(..., description="Authorization header from Bot Framework"),
@@ -101,22 +101,22 @@ async def handle_messages(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid request: {e!s}",
-        )
+        ) from e
     except PermissionError as e:
         logger.error(f"Authentication failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed",
-        )
+        ) from e
     except Exception as e:
         logger.error(f"Error processing activity: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",
-        )
+        ) from e
 
 
-@router.get("/messages/test", status_code=status.HTTP_200_OK)
+@router.get("/messages/test", status_code=status.HTTP_200_OK)  # type: ignore[misc]
 async def test_endpoint() -> dict[str, str]:
     """Test endpoint to verify the bot is reachable.
 
@@ -136,7 +136,7 @@ async def test_endpoint() -> dict[str, str]:
     }
 
 
-@router.post("/messages/proactive", status_code=status.HTTP_200_OK)
+@router.post("/messages/proactive", status_code=status.HTTP_200_OK)  # type: ignore[misc]
 async def send_proactive_message(request: Request) -> dict[str, str]:
     """Send a proactive message to a conversation.
 
@@ -190,7 +190,7 @@ async def send_proactive_message(request: Request) -> dict[str, str]:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to send proactive message: {e!s}",
-        )
+        ) from e
 
 
 def get_adapter() -> Any:
@@ -244,7 +244,7 @@ def initialize_bot_services(settings: Settings | None = None) -> None:
     Example:
         >>> initialize_bot_services(custom_settings)
     """
-    global _adapter, _handler, _state_manager
+    global _adapter, _handler, _state_manager  # noqa: PLW0603
 
     _adapter = create_adapter(settings)
     _handler = OhlalaActivityHandler()

@@ -4,7 +4,8 @@ This module defines Pydantic models for approval workflows, including
 approval requests, approval decisions, and workflow state tracking.
 """
 
-from datetime import datetime, timedelta
+import uuid
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -75,7 +76,9 @@ class ApprovalRequest(BaseModel):
     status: ApprovalStatus = Field(ApprovalStatus.PENDING, description="Approval status")
     reason: str | None = Field(None, description="Reason for the request")
     rejection_reason: str | None = Field(None, description="Reason for rejection")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(tz=UTC), description="Creation timestamp"
+    )
     expires_at: datetime = Field(..., description="Expiration timestamp")
     approved_at: datetime | None = Field(None, description="Approval timestamp")
     rejected_at: datetime | None = Field(None, description="Rejection timestamp")
@@ -95,7 +98,7 @@ class ApprovalRequest(BaseModel):
         Raises:
             ValueError: If expiration is in the past.
         """
-        if v <= datetime.utcnow():
+        if v <= datetime.now(tz=UTC):
             raise ValueError("Expiration time must be in the future")
         return v
 
@@ -128,8 +131,6 @@ class ApprovalRequest(BaseModel):
         Returns:
             New approval request instance.
         """
-        import uuid
-
         return cls(
             id=str(uuid.uuid4()),
             command_type=command_type,
@@ -140,7 +141,7 @@ class ApprovalRequest(BaseModel):
             approval_level=approval_level,
             approvers_required=approvers_required,
             reason=reason,
-            expires_at=datetime.utcnow() + timedelta(minutes=expiration_minutes),
+            expires_at=datetime.now(tz=UTC) + timedelta(minutes=expiration_minutes),
             status=ApprovalStatus.PENDING,
             rejection_reason=None,
             approved_at=None,
@@ -153,7 +154,7 @@ class ApprovalRequest(BaseModel):
         Returns:
             True if the request has expired.
         """
-        return datetime.utcnow() >= self.expires_at
+        return datetime.now(tz=UTC) >= self.expires_at
 
     def can_approve(self, user_id: str) -> bool:
         """Check if a user can approve this request.
@@ -220,7 +221,7 @@ class ApprovalRequest(BaseModel):
         # Check if we have enough approvals
         if len(self.approvers) >= self.approvers_required:
             self.status = ApprovalStatus.APPROVED
-            self.approved_at = datetime.utcnow()
+            self.approved_at = datetime.now(tz=UTC)
             return True
 
         return False
@@ -237,7 +238,7 @@ class ApprovalRequest(BaseModel):
 
         self.rejectors.append(user_id)
         self.status = ApprovalStatus.REJECTED
-        self.rejected_at = datetime.utcnow()
+        self.rejected_at = datetime.now(tz=UTC)
         if reason:
             self.rejection_reason = reason
 
@@ -269,7 +270,9 @@ class ApprovalDecision(BaseModel):
     user_id: str = Field(..., min_length=1, description="User ID")
     user_name: str = Field(..., min_length=1, description="User name")
     reason: str | None = Field(None, description="Reason for the decision")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Decision timestamp")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(tz=UTC), description="Decision timestamp"
+    )
 
 
 class ApprovalWorkflow(BaseModel):

@@ -4,7 +4,7 @@ This module defines Pydantic models for Teams Adaptive Card interactions,
 including card actions, submissions, and responses.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -116,7 +116,9 @@ class CardSubmission(BaseModel):
     data: dict[str, Any] = Field(..., description="Submitted data")
     user_id: str = Field(..., min_length=1, description="User ID")
     conversation_id: str = Field(..., min_length=1, description="Conversation ID")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Submission timestamp")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(tz=UTC), description="Submission timestamp"
+    )
 
 
 class ApprovalCardData(BaseModel):

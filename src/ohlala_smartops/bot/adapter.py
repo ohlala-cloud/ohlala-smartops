@@ -92,10 +92,13 @@ class OhlalaAdapter(CloudAdapter):  # type: ignore[misc]
 
         # Log activity details for debugging
         if context.activity:
+            from_id = (
+                context.activity.from_property.id if context.activity.from_property else "Unknown"
+            )
+            text_preview = context.activity.text[:100] if context.activity.text else "N/A"
             logger.error(
                 f"Activity details - Type: {context.activity.type}, "
-                f"From: {context.activity.from_property.id if context.activity.from_property else 'Unknown'}, "
-                f"Text: {context.activity.text[:100] if context.activity.text else 'N/A'}"
+                f"From: {from_id}, Text: {text_preview}"
             )
 
     async def send_proactive_message(

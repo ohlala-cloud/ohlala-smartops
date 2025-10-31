@@ -4,7 +4,7 @@ This module defines Pydantic models for command requests and responses,
 including command parameters, execution results, and error handling.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -104,7 +104,9 @@ class CommandResponse(BaseModel):
     result: dict[str, Any] | None = Field(None, description="Execution result")
     error: str | None = Field(None, description="Error message")
     execution_time_ms: int = Field(..., ge=0, description="Execution time in milliseconds")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Response timestamp")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(tz=UTC), description="Response timestamp"
+    )
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 

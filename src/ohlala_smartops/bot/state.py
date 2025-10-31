@@ -6,7 +6,7 @@ state, and approval workflows across multiple turns.
 
 import logging
 from abc import abstractmethod
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 from ohlala_smartops.models import (
@@ -157,11 +157,13 @@ class InMemoryStateStorage:
             Conversation state if found and not expired, None otherwise.
         """
         # Check if expired
-        if conversation_id in self._state_expiry:
-            if datetime.utcnow() > self._state_expiry[conversation_id]:
-                # Expired, remove it
-                await self.delete_state(conversation_id)
-                return None
+        if (
+            conversation_id in self._state_expiry
+            and datetime.now(tz=UTC) > self._state_expiry[conversation_id]
+        ):
+            # Expired, remove it
+            await self.delete_state(conversation_id)
+            return None
 
         return self._states.get(conversation_id)
 
@@ -173,7 +175,7 @@ class InMemoryStateStorage:
             ttl_seconds: Time-to-live in seconds (default: 1 hour).
         """
         self._states[state.conversation_id] = state
-        self._state_expiry[state.conversation_id] = datetime.utcnow() + timedelta(
+        self._state_expiry[state.conversation_id] = datetime.now(tz=UTC) + timedelta(
             seconds=ttl_seconds
         )
         logger.debug(f"Stored state for conversation {state.conversation_id}")
@@ -188,11 +190,13 @@ class InMemoryStateStorage:
             Conversation context if found and not expired, None otherwise.
         """
         # Check if expired
-        if conversation_id in self._context_expiry:
-            if datetime.utcnow() > self._context_expiry[conversation_id]:
-                # Expired, remove it
-                await self.delete_context(conversation_id)
-                return None
+        if (
+            conversation_id in self._context_expiry
+            and datetime.now(tz=UTC) > self._context_expiry[conversation_id]
+        ):
+            # Expired, remove it
+            await self.delete_context(conversation_id)
+            return None
 
         return self._contexts.get(conversation_id)
 
@@ -204,7 +208,7 @@ class InMemoryStateStorage:
             ttl_seconds: Time-to-live in seconds (default: 24 hours).
         """
         self._contexts[context.conversation_id] = context
-        self._context_expiry[context.conversation_id] = datetime.utcnow() + timedelta(
+        self._context_expiry[context.conversation_id] = datetime.now(tz=UTC) + timedelta(
             seconds=ttl_seconds
         )
         logger.debug(f"Stored context for conversation {context.conversation_id}")
@@ -338,7 +342,7 @@ class ConversationStateManager:
             state: Conversation state to save.
             ttl_seconds: Time-to-live in seconds.
         """
-        state.updated_at = datetime.utcnow()
+        state.updated_at = datetime.now(tz=UTC)
         await self.storage.set_state(state, ttl_seconds)
 
     async def get_context(self, conversation_id: str) -> ConversationContext | None:

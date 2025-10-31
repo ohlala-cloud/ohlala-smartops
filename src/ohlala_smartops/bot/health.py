@@ -5,7 +5,7 @@ and readiness for handling requests.
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Response, status
@@ -31,7 +31,9 @@ class HealthStatus(BaseModel):
 
     status: str = Field(..., description="Overall health status")
     version: str = Field(..., description="Application version")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Current timestamp")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(tz=UTC), description="Current timestamp"
+    )
     checks: dict[str, dict[str, Any]] = Field(
         default_factory=dict, description="Individual component health checks"
     )
@@ -49,11 +51,13 @@ class ReadinessStatus(BaseModel):
 
     ready: bool = Field(..., description="Service readiness status")
     version: str = Field(..., description="Application version")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Current timestamp")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(tz=UTC), description="Current timestamp"
+    )
     components: dict[str, bool] = Field(default_factory=dict, description="Component readiness")
 
 
-@router.get("/health", response_model=HealthStatus)
+@router.get("/health", response_model=HealthStatus)  # type: ignore[misc]
 async def health_check() -> HealthStatus:
     """Health check endpoint.
 
@@ -124,7 +128,7 @@ async def health_check() -> HealthStatus:
     )
 
 
-@router.get("/health/live", status_code=status.HTTP_200_OK)
+@router.get("/health/live", status_code=status.HTTP_200_OK)  # type: ignore[misc]
 async def liveness_check() -> dict[str, str]:
     """Liveness check endpoint.
 
@@ -141,7 +145,7 @@ async def liveness_check() -> dict[str, str]:
     return {"status": "alive", "version": __version__}
 
 
-@router.get("/health/ready")
+@router.get("/health/ready")  # type: ignore[misc]
 async def readiness_check(response: Response) -> ReadinessStatus:
     """Readiness check endpoint.
 
@@ -193,7 +197,7 @@ async def readiness_check(response: Response) -> ReadinessStatus:
     )
 
 
-@router.get("/health/startup", status_code=status.HTTP_200_OK)
+@router.get("/health/startup", status_code=status.HTTP_200_OK)  # type: ignore[misc]
 async def startup_check() -> dict[str, str]:
     """Startup check endpoint.
 
@@ -210,7 +214,7 @@ async def startup_check() -> dict[str, str]:
     return {"status": "started", "version": __version__}
 
 
-@router.get("/version", status_code=status.HTTP_200_OK)
+@router.get("/version", status_code=status.HTTP_200_OK)  # type: ignore[misc]
 async def version_info() -> dict[str, str]:
     """Version information endpoint.
 

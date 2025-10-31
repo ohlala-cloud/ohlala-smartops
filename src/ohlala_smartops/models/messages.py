@@ -4,6 +4,7 @@ This module defines Pydantic models for Microsoft Teams Bot Framework messages,
 including Activity, ChannelData, and related schemas.
 """
 
+import re
 from datetime import datetime
 from enum import Enum
 from typing import Any
@@ -192,8 +193,6 @@ class Activity(BaseModel):
             return ""
 
         # Remove HTML tags
-        import re
-
         text = re.sub(r"<[^>]+>", "", self.text)
 
         # Remove @mentions
