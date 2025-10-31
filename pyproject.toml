@@ -138,6 +138,7 @@ select = [
     "RUF",    # ruff-specific rules
 ]
 ignore = [
+    "ISC001",   # Implicit string concatenation (conflicts with formatter)
     "PLR0913",  # Too many arguments to function call
     "PLR2004",  # Magic value used in comparison
 ]
