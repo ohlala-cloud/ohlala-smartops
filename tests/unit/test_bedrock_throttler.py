@@ -170,7 +170,7 @@ class TestBedrockThrottler:
 
         start_time = time.time()
 
-        with pytest.raises(Exception, match="(?i)too many"):  # Case-insensitive
+        with pytest.raises(Exception, match=r"(?i)too many"):  # Case-insensitive
             async with throttler.throttled_bedrock_request("test_operation"):
                 raise Exception("Too many requests")
 

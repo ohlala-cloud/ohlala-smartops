@@ -96,7 +96,7 @@ class TestGlobalThrottler:
 
         start_time = time.time()
 
-        with pytest.raises(Exception, match="(?i)rate limit"):
+        with pytest.raises(Exception, match=r"(?i)rate limit"):
             async with throttler.throttled_request("test_operation"):
                 raise Exception("Rate limit exceeded")
 
