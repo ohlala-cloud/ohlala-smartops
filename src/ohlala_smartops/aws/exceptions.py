@@ -73,6 +73,14 @@ class SSMError(AWSError):
     """
 
 
+class TaggingError(AWSError):
+    """Exception raised for resource tagging errors.
+
+    Raised when tagging operations fail, such as adding tags,
+    removing tags, or querying resources by tags.
+    """
+
+
 class ThrottlingError(AWSError):
     """Exception raised when AWS API rate limits are exceeded.
 

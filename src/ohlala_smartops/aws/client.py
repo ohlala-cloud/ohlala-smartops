@@ -20,6 +20,7 @@ from ohlala_smartops.aws.exceptions import (
     PermissionError,
     ResourceNotFoundError,
     SSMError,
+    TaggingError,
     ThrottlingError,
     TimeoutError,
     ValidationError,
@@ -227,16 +228,21 @@ class AWSClientWrapper:
             details=details,
         )
 
-    def _get_service_error_class(self) -> type[EC2Error] | type[SSMError]:
+    def _get_service_error_class(
+        self,
+    ) -> type[EC2Error] | type[SSMError] | type[TaggingError]:
         """Get the appropriate service-specific error class.
 
         Returns:
-            EC2Error for EC2 service, SSMError for SSM, etc.
+            EC2Error for EC2 service, SSMError for SSM, TaggingError for
+            Resource Groups Tagging API, etc.
         """
         if self.service_name == "ec2":
             return EC2Error
         if self.service_name == "ssm":
             return SSMError
+        if self.service_name == "resourcegroupstaggingapi":
+            return TaggingError
         # Add more services as needed
         return EC2Error  # Default fallback
 

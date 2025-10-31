@@ -8,9 +8,10 @@ This package provides AWS service integrations with:
 - Integration with GlobalThrottler for rate limiting
 - EC2 instance management utilities
 - SSM command execution and tracking
+- Resource tagging and tag-based queries
 
 Example:
-    >>> from ohlala_smartops.aws import EC2Manager, SSMCommandManager
+    >>> from ohlala_smartops.aws import EC2Manager, SSMCommandManager, TaggingManager
     >>>
     >>> # High-level EC2 management
     >>> ec2_mgr = EC2Manager(region="us-east-1")
@@ -24,6 +25,11 @@ Example:
     ...     commands=["ls -la"],
     ... )
     >>> result = await ssm_mgr.wait_for_completion(cmd.command_id, "i-123")
+    >>>
+    >>> # Resource tagging
+    >>> tag_mgr = TaggingManager(region="us-east-1")
+    >>> await tag_mgr.tag_resources(["i-123"], {"Environment": "Production"})
+    >>> arns = await tag_mgr.find_resources_by_tags({"Environment": "Production"})
 """
 
 from ohlala_smartops.aws.client import (
@@ -38,6 +44,7 @@ from ohlala_smartops.aws.exceptions import (
     PermissionError,
     ResourceNotFoundError,
     SSMError,
+    TaggingError,
     ThrottlingError,
     TimeoutError,
     ValidationError,
@@ -47,6 +54,7 @@ from ohlala_smartops.aws.ssm_commands import (
     SSMCommandInvocation,
     SSMCommandManager,
 )
+from ohlala_smartops.aws.tagging import ResourceTag, TaggingManager
 
 __all__ = [
     "AWSClientWrapper",
@@ -56,10 +64,13 @@ __all__ = [
     "EC2Manager",
     "PermissionError",
     "ResourceNotFoundError",
+    "ResourceTag",
     "SSMCommand",
     "SSMCommandInvocation",
     "SSMCommandManager",
     "SSMError",
+    "TaggingError",
+    "TaggingManager",
     "ThrottlingError",
     "TimeoutError",
     "ValidationError",
