@@ -8,6 +8,7 @@ This package provides AWS service integrations with:
 - Integration with GlobalThrottler for rate limiting
 - EC2 instance management utilities
 - SSM command execution and tracking
+- SSM session management (interactive and port forwarding)
 - Resource tagging and tag-based queries
 
 Example:
@@ -30,6 +31,12 @@ Example:
     >>> tag_mgr = TaggingManager(region="us-east-1")
     >>> await tag_mgr.tag_resources(["i-123"], {"Environment": "Production"})
     >>> arns = await tag_mgr.find_resources_by_tags({"Environment": "Production"})
+    >>>
+    >>> # SSM session management
+    >>> session_mgr = SSMSessionManager(region="us-east-1")
+    >>> session = await session_mgr.start_session("i-123")
+    >>> sessions = await session_mgr.list_sessions(state="Active")
+    >>> await session_mgr.terminate_session(session.session_id)
 """
 
 from ohlala_smartops.aws.client import (
@@ -54,6 +61,7 @@ from ohlala_smartops.aws.ssm_commands import (
     SSMCommandInvocation,
     SSMCommandManager,
 )
+from ohlala_smartops.aws.ssm_sessions import SSMSession, SSMSessionManager
 from ohlala_smartops.aws.tagging import ResourceTag, TaggingManager
 
 __all__ = [
@@ -69,6 +77,8 @@ __all__ = [
     "SSMCommandInvocation",
     "SSMCommandManager",
     "SSMError",
+    "SSMSession",
+    "SSMSessionManager",
     "TaggingError",
     "TaggingManager",
     "ThrottlingError",
