@@ -7,18 +7,23 @@ This package provides AWS service integrations with:
 - Retry logic with exponential backoff
 - Integration with GlobalThrottler for rate limiting
 - EC2 instance management utilities
+- SSM command execution and tracking
 
 Example:
-    >>> from ohlala_smartops.aws import EC2Manager, create_aws_client
+    >>> from ohlala_smartops.aws import EC2Manager, SSMCommandManager
     >>>
     >>> # High-level EC2 management
-    >>> manager = EC2Manager(region="us-east-1")
-    >>> instances = await manager.describe_instances(["i-123"])
-    >>> await manager.start_instances(["i-123"])
+    >>> ec2_mgr = EC2Manager(region="us-east-1")
+    >>> instances = await ec2_mgr.describe_instances(["i-123"])
+    >>> await ec2_mgr.start_instances(["i-123"])
     >>>
-    >>> # Low-level client usage
-    >>> ec2_client = create_aws_client("ec2", region="us-east-1")
-    >>> result = await ec2_client.call("describe_instances")
+    >>> # SSM command execution
+    >>> ssm_mgr = SSMCommandManager(region="us-east-1")
+    >>> cmd = await ssm_mgr.send_command(
+    ...     instance_ids=["i-123"],
+    ...     commands=["ls -la"],
+    ... )
+    >>> result = await ssm_mgr.wait_for_completion(cmd.command_id, "i-123")
 """
 
 from ohlala_smartops.aws.client import (
@@ -37,6 +42,11 @@ from ohlala_smartops.aws.exceptions import (
     TimeoutError,
     ValidationError,
 )
+from ohlala_smartops.aws.ssm_commands import (
+    SSMCommand,
+    SSMCommandInvocation,
+    SSMCommandManager,
+)
 
 __all__ = [
     "AWSClientWrapper",
@@ -46,6 +56,9 @@ __all__ = [
     "EC2Manager",
     "PermissionError",
     "ResourceNotFoundError",
+    "SSMCommand",
+    "SSMCommandInvocation",
+    "SSMCommandManager",
     "SSMError",
     "ThrottlingError",
     "TimeoutError",
