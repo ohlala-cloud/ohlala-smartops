@@ -35,12 +35,12 @@ repos:
       # Run the formatter
       - id: ruff-format
 
-  # Black code formatter
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
-    hooks:
-      - id: black
-        language_version: python3.13
+  # Black code formatter (disabled - using ruff-format instead)
+  # - repo: https://github.com/psf/black
+  #   rev: 24.10.0
+  #   hooks:
+  #     - id: black
+  #       language_version: python3.13
 
   # MyPy type checker
   - repo: https://github.com/pre-commit/mirrors-mypy
