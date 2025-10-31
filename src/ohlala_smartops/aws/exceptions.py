@@ -89,6 +89,14 @@ class CloudWatchError(AWSError):
     """
 
 
+class CostExplorerError(AWSError):
+    """Exception raised for Cost Explorer service errors.
+
+    Raised when Cost Explorer operations fail, such as getting cost data,
+    forecasting costs, or retrieving recommendations.
+    """
+
+
 class ThrottlingError(AWSError):
     """Exception raised when AWS API rate limits are exceeded.
 
