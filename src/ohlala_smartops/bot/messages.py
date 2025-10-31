@@ -27,7 +27,7 @@ _handler = OhlalaActivityHandler()
 _state_manager = create_state_manager("memory")
 
 
-@router.post("/messages", status_code=status.HTTP_200_OK)  # type: ignore[misc]
+@router.post("/messages", status_code=status.HTTP_200_OK)
 async def handle_messages(
     request: Request,
     authorization: str = Header(..., description="Authorization header from Bot Framework"),
@@ -116,7 +116,7 @@ async def handle_messages(
         ) from e
 
 
-@router.get("/messages/test", status_code=status.HTTP_200_OK)  # type: ignore[misc]
+@router.get("/messages/test", status_code=status.HTTP_200_OK)
 async def test_endpoint() -> dict[str, str]:
     """Test endpoint to verify the bot is reachable.
 
@@ -136,7 +136,7 @@ async def test_endpoint() -> dict[str, str]:
     }
 
 
-@router.post("/messages/proactive", status_code=status.HTTP_200_OK)  # type: ignore[misc]
+@router.post("/messages/proactive", status_code=status.HTTP_200_OK)
 async def send_proactive_message(request: Request) -> dict[str, str]:
     """Send a proactive message to a conversation.
 

@@ -94,7 +94,7 @@ def create_app() -> FastAPI:
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     # Add custom exception handler
-    @app.exception_handler(Exception)  # type: ignore[misc]
+    @app.exception_handler(Exception)
     async def global_exception_handler(_request: Any, exc: Exception) -> JSONResponse:
         """Handle uncaught exceptions globally.
 

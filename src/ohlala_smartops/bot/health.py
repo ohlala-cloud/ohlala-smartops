@@ -57,7 +57,7 @@ class ReadinessStatus(BaseModel):
     components: dict[str, bool] = Field(default_factory=dict, description="Component readiness")
 
 
-@router.get("/health", response_model=HealthStatus)  # type: ignore[misc]
+@router.get("/health", response_model=HealthStatus)
 async def health_check() -> HealthStatus:
     """Health check endpoint.
 
@@ -128,7 +128,7 @@ async def health_check() -> HealthStatus:
     )
 
 
-@router.get("/health/live", status_code=status.HTTP_200_OK)  # type: ignore[misc]
+@router.get("/health/live", status_code=status.HTTP_200_OK)
 async def liveness_check() -> dict[str, str]:
     """Liveness check endpoint.
 
@@ -145,7 +145,7 @@ async def liveness_check() -> dict[str, str]:
     return {"status": "alive", "version": __version__}
 
 
-@router.get("/health/ready")  # type: ignore[misc]
+@router.get("/health/ready")
 async def readiness_check(response: Response) -> ReadinessStatus:
     """Readiness check endpoint.
 
@@ -197,7 +197,7 @@ async def readiness_check(response: Response) -> ReadinessStatus:
     )
 
 
-@router.get("/health/startup", status_code=status.HTTP_200_OK)  # type: ignore[misc]
+@router.get("/health/startup", status_code=status.HTTP_200_OK)
 async def startup_check() -> dict[str, str]:
     """Startup check endpoint.
 
@@ -214,7 +214,7 @@ async def startup_check() -> dict[str, str]:
     return {"status": "started", "version": __version__}
 
 
-@router.get("/version", status_code=status.HTTP_200_OK)  # type: ignore[misc]
+@router.get("/version", status_code=status.HTTP_200_OK)
 async def version_info() -> dict[str, str]:
     """Version information endpoint.
 
