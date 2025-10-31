@@ -1,7 +1,7 @@
 """Tests for SSM session management utilities."""
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from pydantic import ValidationError as PydanticValidationError
@@ -430,10 +430,11 @@ class TestSSMSessionManager:
 
     def test_session_manager_default_region(self) -> None:
         """Test SSMSessionManager initialization with default region."""
-        manager = SSMSessionManager()
+        with patch("ohlala_smartops.aws.ssm_sessions.create_aws_client") as mock_create:
+            manager = SSMSessionManager()
 
-        assert manager.region is None
-        assert manager.client is not None
+            assert manager.region is None
+            mock_create.assert_called_once_with("ssm", region=None)
 
     # Tests for _parse_session()
 

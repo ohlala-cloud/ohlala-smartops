@@ -1,6 +1,6 @@
 """Tests for resource tagging utilities."""
 
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from pydantic import ValidationError as PydanticValidationError
@@ -405,14 +405,18 @@ class TestTaggingManager:
 
     def test_tagging_manager_with_client(self, mock_ec2_client: Mock) -> None:
         """Test TaggingManager initialization with pre-configured client."""
-        manager = TaggingManager(client=mock_ec2_client)
+        with patch("ohlala_smartops.aws.tagging.create_aws_client") as mock_create:
+            manager = TaggingManager(client=mock_ec2_client)
 
-        assert manager.client is mock_ec2_client
-        assert manager._tagging_client is not None
+            assert manager.client is mock_ec2_client
+            # Should only create the tagging client, not the EC2 client
+            mock_create.assert_called_once_with("resourcegroupstaggingapi", region=None)
 
     def test_tagging_manager_default_region(self) -> None:
         """Test TaggingManager initialization with default region."""
-        manager = TaggingManager()
+        with patch("ohlala_smartops.aws.tagging.create_aws_client") as mock_create:
+            manager = TaggingManager()
 
-        assert manager.region is None
-        assert manager.client is not None
+            assert manager.region is None
+            # Should create both EC2 client and tagging client
+            assert mock_create.call_count == 2

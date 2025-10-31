@@ -1,7 +1,7 @@
 """Tests for CloudWatch metrics utilities."""
 
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from pydantic import ValidationError as PydanticValidationError
@@ -544,7 +544,8 @@ class TestCloudWatchManager:
 
     def test_cloudwatch_manager_default_region(self) -> None:
         """Test CloudWatchManager initialization with default region."""
-        manager = CloudWatchManager()
+        with patch("ohlala_smartops.aws.cloudwatch.create_aws_client") as mock_create:
+            manager = CloudWatchManager()
 
-        assert manager.region is None
-        assert manager.client is not None
+            assert manager.region is None
+            mock_create.assert_called_once_with("cloudwatch", region=None)
