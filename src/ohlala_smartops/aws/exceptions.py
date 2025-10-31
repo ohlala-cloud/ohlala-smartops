@@ -81,6 +81,14 @@ class TaggingError(AWSError):
     """
 
 
+class CloudWatchError(AWSError):
+    """Exception raised for CloudWatch service errors.
+
+    Raised when CloudWatch operations fail, such as getting metrics,
+    putting metric data, or listing metrics.
+    """
+
+
 class ThrottlingError(AWSError):
     """Exception raised when AWS API rate limits are exceeded.
 

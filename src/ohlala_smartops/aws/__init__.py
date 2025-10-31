@@ -10,6 +10,7 @@ This package provides AWS service integrations with:
 - SSM command execution and tracking
 - SSM session management (interactive and port forwarding)
 - Resource tagging and tag-based queries
+- CloudWatch metrics (retrieve and publish)
 
 Example:
     >>> from ohlala_smartops.aws import EC2Manager, SSMCommandManager, TaggingManager
@@ -37,6 +38,19 @@ Example:
     >>> session = await session_mgr.start_session("i-123")
     >>> sessions = await session_mgr.list_sessions(state="Active")
     >>> await session_mgr.terminate_session(session.session_id)
+    >>>
+    >>> # CloudWatch metrics
+    >>> from datetime import datetime, timedelta
+    >>> cw_mgr = CloudWatchManager(region="us-east-1")
+    >>> end = datetime.now()
+    >>> start = end - timedelta(hours=1)
+    >>> datapoints = await cw_mgr.get_metric_statistics(
+    ...     namespace="AWS/EC2",
+    ...     metric_name="CPUUtilization",
+    ...     dimensions={"InstanceId": "i-123"},
+    ...     start_time=start,
+    ...     end_time=end
+    ... )
 """
 
 from ohlala_smartops.aws.client import (
@@ -44,9 +58,15 @@ from ohlala_smartops.aws.client import (
     create_aws_client,
     execute_with_retry,
 )
+from ohlala_smartops.aws.cloudwatch import (
+    CloudWatchManager,
+    CloudWatchMetric,
+    MetricDataPoint,
+)
 from ohlala_smartops.aws.ec2 import EC2Instance, EC2Manager
 from ohlala_smartops.aws.exceptions import (
     AWSError,
+    CloudWatchError,
     EC2Error,
     PermissionError,
     ResourceNotFoundError,
@@ -67,9 +87,13 @@ from ohlala_smartops.aws.tagging import ResourceTag, TaggingManager
 __all__ = [
     "AWSClientWrapper",
     "AWSError",
+    "CloudWatchError",
+    "CloudWatchManager",
+    "CloudWatchMetric",
     "EC2Error",
     "EC2Instance",
     "EC2Manager",
+    "MetricDataPoint",
     "PermissionError",
     "ResourceNotFoundError",
     "ResourceTag",

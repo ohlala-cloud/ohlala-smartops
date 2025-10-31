@@ -16,6 +16,7 @@ from botocore.client import BaseClient
 from botocore.exceptions import BotoCoreError, ClientError
 
 from ohlala_smartops.aws.exceptions import (
+    CloudWatchError,
     EC2Error,
     PermissionError,
     ResourceNotFoundError,
@@ -230,12 +231,12 @@ class AWSClientWrapper:
 
     def _get_service_error_class(
         self,
-    ) -> type[EC2Error] | type[SSMError] | type[TaggingError]:
+    ) -> type[EC2Error] | type[SSMError] | type[TaggingError] | type[CloudWatchError]:
         """Get the appropriate service-specific error class.
 
         Returns:
             EC2Error for EC2 service, SSMError for SSM, TaggingError for
-            Resource Groups Tagging API, etc.
+            Resource Groups Tagging API, CloudWatchError for CloudWatch, etc.
         """
         if self.service_name == "ec2":
             return EC2Error
@@ -243,6 +244,8 @@ class AWSClientWrapper:
             return SSMError
         if self.service_name == "resourcegroupstaggingapi":
             return TaggingError
+        if self.service_name == "cloudwatch":
+            return CloudWatchError
         # Add more services as needed
         return EC2Error  # Default fallback
 
