@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
+import ohlala_smartops.utils.token_tracker
 from ohlala_smartops.utils.token_tracker import (
     TokenTracker,
     check_operation_limits,
@@ -15,6 +16,7 @@ from ohlala_smartops.utils.token_tracker import (
     get_token_tracker,
     get_usage_report,
     get_usage_summary,
+    main,
     track_bedrock_operation,
 )
 
@@ -358,9 +360,7 @@ class TestGlobalFunctions:
     def test_get_token_tracker_creates_instance(self) -> None:
         """Test that get_token_tracker creates an instance."""
         # Reset global instance
-        import ohlala_smartops.utils.token_tracker as module  # noqa: PLC0415
-
-        module._token_tracker = None
+        ohlala_smartops.utils.token_tracker._token_tracker = None
 
         tracker = get_token_tracker()
 
@@ -435,8 +435,6 @@ class TestCLI:
     @patch("sys.argv", ["token_tracker.py", "--estimate", "Hello world"])
     def test_cli_estimate(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test CLI estimation."""
-        from ohlala_smartops.utils.token_tracker import main  # noqa: PLC0415
-
         main()
         captured = capsys.readouterr()
 
@@ -446,8 +444,6 @@ class TestCLI:
     @patch("sys.argv", ["token_tracker.py", "--report"])
     def test_cli_report(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test CLI report generation."""
-        from ohlala_smartops.utils.token_tracker import main  # noqa: PLC0415
-
         main()
         captured = capsys.readouterr()
 
@@ -456,8 +452,6 @@ class TestCLI:
     @patch("sys.argv", ["token_tracker.py", "--reset-daily"])
     def test_cli_reset_daily(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test CLI daily stats reset."""
-        from ohlala_smartops.utils.token_tracker import main  # noqa: PLC0415
-
         main()
         captured = capsys.readouterr()
 
@@ -466,8 +460,6 @@ class TestCLI:
     @patch("sys.argv", ["token_tracker.py"])
     def test_cli_no_args(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test CLI with no arguments."""
-        from ohlala_smartops.utils.token_tracker import main  # noqa: PLC0415
-
         main()
         captured = capsys.readouterr()
 

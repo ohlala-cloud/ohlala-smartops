@@ -5,6 +5,7 @@ exceeding AWS Bedrock model limits and manage costs. It maintains both session-b
 and daily statistics with persistent storage.
 """
 
+import argparse
 import json
 import logging
 import time
@@ -599,8 +600,6 @@ def get_usage_report() -> str:
 
 def main() -> None:
     """CLI interface for token tracking."""
-    import argparse  # noqa: PLC0415
-
     parser = argparse.ArgumentParser(description="SmartOps Agent Token Tracker")
     parser.add_argument("--report", action="store_true", help="Show usage report")
     parser.add_argument("--reset-daily", action="store_true", help="Reset daily statistics")

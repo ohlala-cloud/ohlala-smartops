@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
+import ohlala_smartops.utils.global_throttler
 from ohlala_smartops.utils.global_throttler import (
     CircuitBreakerOpenError,
     CircuitBreakerTrippedError,
@@ -392,9 +393,7 @@ class TestGlobalSingleton:
     def test_get_global_throttler_creates_instance(self) -> None:
         """Test that get_global_throttler creates an instance."""
         # Reset global instance
-        import ohlala_smartops.utils.global_throttler as module  # noqa: PLC0415
-
-        module._global_throttler = None
+        ohlala_smartops.utils.global_throttler._global_throttler = None
 
         throttler = get_global_throttler()
 

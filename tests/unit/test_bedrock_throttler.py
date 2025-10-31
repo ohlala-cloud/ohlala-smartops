@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
+import ohlala_smartops.utils.bedrock_throttler
 from ohlala_smartops.utils.bedrock_throttler import (
     BedrockThrottler,
     get_bedrock_throttler,
@@ -287,9 +288,7 @@ class TestGlobalSingleton:
     def test_get_bedrock_throttler_creates_instance(self) -> None:
         """Test that get_bedrock_throttler creates an instance."""
         # Reset global instance
-        import ohlala_smartops.utils.bedrock_throttler as module  # noqa: PLC0415
-
-        module._bedrock_throttler = None
+        ohlala_smartops.utils.bedrock_throttler._bedrock_throttler = None
 
         throttler = get_bedrock_throttler()
 
