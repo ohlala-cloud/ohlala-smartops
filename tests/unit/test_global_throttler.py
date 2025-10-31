@@ -392,7 +392,7 @@ class TestGlobalSingleton:
     def test_get_global_throttler_creates_instance(self) -> None:
         """Test that get_global_throttler creates an instance."""
         # Reset global instance
-        import ohlala_smartops.utils.global_throttler as module
+        import ohlala_smartops.utils.global_throttler as module  # noqa: PLC0415
 
         module._global_throttler = None
 

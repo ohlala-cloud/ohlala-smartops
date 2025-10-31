@@ -287,7 +287,7 @@ class TestGlobalSingleton:
     def test_get_bedrock_throttler_creates_instance(self) -> None:
         """Test that get_bedrock_throttler creates an instance."""
         # Reset global instance
-        import ohlala_smartops.utils.bedrock_throttler as module
+        import ohlala_smartops.utils.bedrock_throttler as module  # noqa: PLC0415
 
         module._bedrock_throttler = None
 

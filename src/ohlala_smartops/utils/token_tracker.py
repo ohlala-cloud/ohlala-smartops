@@ -599,7 +599,7 @@ def get_usage_report() -> str:
 
 def main() -> None:
     """CLI interface for token tracking."""
-    import argparse
+    import argparse  # noqa: PLC0415
 
     parser = argparse.ArgumentParser(description="SmartOps Agent Token Tracker")
     parser.add_argument("--report", action="store_true", help="Show usage report")

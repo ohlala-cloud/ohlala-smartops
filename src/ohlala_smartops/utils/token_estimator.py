@@ -360,7 +360,7 @@ def main() -> None:
     Provides command-line interface for estimating token consumption
     for various instance counts and command types.
     """
-    import argparse
+    import argparse  # noqa: PLC0415
 
     parser = argparse.ArgumentParser(description="Estimate token consumption for Ohlala SmartOps")
     parser.add_argument("--instances", type=int, default=10, help="Number of EC2 instances")
