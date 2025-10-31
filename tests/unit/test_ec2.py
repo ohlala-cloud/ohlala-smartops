@@ -149,7 +149,9 @@ class TestEC2Manager:
         assert instances[0].instance_type == "t3.micro"
         assert instances[0].state == "running"
         assert instances[0].tags["Name"] == "test-server"
-        mock_client.call.assert_called_once_with("describe_instances", InstanceIds=["i-1234567890abcdef"])
+        mock_client.call.assert_called_once_with(
+            "describe_instances", InstanceIds=["i-1234567890abcdef"]
+        )
 
     @pytest.mark.asyncio
     async def test_describe_instances_with_filters(
@@ -243,7 +245,9 @@ class TestEC2Manager:
 
         assert result == {"i-1234567890abcdef": "stopped", "i-abcdef1234567890": "stopped"}
         mock_client.call.assert_called_once_with(
-            "start_instances", InstanceIds=["i-1234567890abcdef", "i-abcdef1234567890"], DryRun=False
+            "start_instances",
+            InstanceIds=["i-1234567890abcdef", "i-abcdef1234567890"],
+            DryRun=False,
         )
 
     @pytest.mark.asyncio
@@ -314,7 +318,9 @@ class TestEC2Manager:
         await manager.reboot_instances(["i-1234567890abcdef", "i-abcdef1234567890"])
 
         mock_client.call.assert_called_once_with(
-            "reboot_instances", InstanceIds=["i-1234567890abcdef", "i-abcdef1234567890"], DryRun=False
+            "reboot_instances",
+            InstanceIds=["i-1234567890abcdef", "i-abcdef1234567890"],
+            DryRun=False,
         )
 
     @pytest.mark.asyncio
