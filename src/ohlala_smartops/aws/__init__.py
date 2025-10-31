@@ -8,9 +8,13 @@ This package provides AWS service integrations with:
 - Integration with GlobalThrottler for rate limiting
 - EC2 instance management utilities
 - SSM command execution and tracking
+- SSM session management (interactive and port forwarding)
+- Resource tagging and tag-based queries
+- CloudWatch metrics (retrieve and publish)
+- Cost Explorer (cost tracking and forecasting)
 
 Example:
-    >>> from ohlala_smartops.aws import EC2Manager, SSMCommandManager
+    >>> from ohlala_smartops.aws import EC2Manager, SSMCommandManager, TaggingManager
     >>>
     >>> # High-level EC2 management
     >>> ec2_mgr = EC2Manager(region="us-east-1")
@@ -24,6 +28,30 @@ Example:
     ...     commands=["ls -la"],
     ... )
     >>> result = await ssm_mgr.wait_for_completion(cmd.command_id, "i-123")
+    >>>
+    >>> # Resource tagging
+    >>> tag_mgr = TaggingManager(region="us-east-1")
+    >>> await tag_mgr.tag_resources(["i-123"], {"Environment": "Production"})
+    >>> arns = await tag_mgr.find_resources_by_tags({"Environment": "Production"})
+    >>>
+    >>> # SSM session management
+    >>> session_mgr = SSMSessionManager(region="us-east-1")
+    >>> session = await session_mgr.start_session("i-123")
+    >>> sessions = await session_mgr.list_sessions(state="Active")
+    >>> await session_mgr.terminate_session(session.session_id)
+    >>>
+    >>> # CloudWatch metrics
+    >>> from datetime import datetime, timedelta
+    >>> cw_mgr = CloudWatchManager(region="us-east-1")
+    >>> end = datetime.now()
+    >>> start = end - timedelta(hours=1)
+    >>> datapoints = await cw_mgr.get_metric_statistics(
+    ...     namespace="AWS/EC2",
+    ...     metric_name="CPUUtilization",
+    ...     dimensions={"InstanceId": "i-123"},
+    ...     start_time=start,
+    ...     end_time=end
+    ... )
 """
 
 from ohlala_smartops.aws.client import (
@@ -31,13 +59,26 @@ from ohlala_smartops.aws.client import (
     create_aws_client,
     execute_with_retry,
 )
+from ohlala_smartops.aws.cloudwatch import (
+    CloudWatchManager,
+    CloudWatchMetric,
+    MetricDataPoint,
+)
+from ohlala_smartops.aws.cost_explorer import (
+    CostDataPoint,
+    CostExplorerManager,
+    CostFilter,
+)
 from ohlala_smartops.aws.ec2 import EC2Instance, EC2Manager
 from ohlala_smartops.aws.exceptions import (
     AWSError,
+    CloudWatchError,
+    CostExplorerError,
     EC2Error,
     PermissionError,
     ResourceNotFoundError,
     SSMError,
+    TaggingError,
     ThrottlingError,
     TimeoutError,
     ValidationError,
@@ -47,19 +88,34 @@ from ohlala_smartops.aws.ssm_commands import (
     SSMCommandInvocation,
     SSMCommandManager,
 )
+from ohlala_smartops.aws.ssm_sessions import SSMSession, SSMSessionManager
+from ohlala_smartops.aws.tagging import ResourceTag, TaggingManager
 
 __all__ = [
     "AWSClientWrapper",
     "AWSError",
+    "CloudWatchError",
+    "CloudWatchManager",
+    "CloudWatchMetric",
+    "CostDataPoint",
+    "CostExplorerError",
+    "CostExplorerManager",
+    "CostFilter",
     "EC2Error",
     "EC2Instance",
     "EC2Manager",
+    "MetricDataPoint",
     "PermissionError",
     "ResourceNotFoundError",
+    "ResourceTag",
     "SSMCommand",
     "SSMCommandInvocation",
     "SSMCommandManager",
     "SSMError",
+    "SSMSession",
+    "SSMSessionManager",
+    "TaggingError",
+    "TaggingManager",
     "ThrottlingError",
     "TimeoutError",
     "ValidationError",

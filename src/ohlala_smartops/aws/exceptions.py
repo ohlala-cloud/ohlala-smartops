@@ -73,6 +73,30 @@ class SSMError(AWSError):
     """
 
 
+class TaggingError(AWSError):
+    """Exception raised for resource tagging errors.
+
+    Raised when tagging operations fail, such as adding tags,
+    removing tags, or querying resources by tags.
+    """
+
+
+class CloudWatchError(AWSError):
+    """Exception raised for CloudWatch service errors.
+
+    Raised when CloudWatch operations fail, such as getting metrics,
+    putting metric data, or listing metrics.
+    """
+
+
+class CostExplorerError(AWSError):
+    """Exception raised for Cost Explorer service errors.
+
+    Raised when Cost Explorer operations fail, such as getting cost data,
+    forecasting costs, or retrieving recommendations.
+    """
+
+
 class ThrottlingError(AWSError):
     """Exception raised when AWS API rate limits are exceeded.
 
