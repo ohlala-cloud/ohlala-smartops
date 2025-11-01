@@ -1,12 +1,16 @@
-# Migration Log - Phase 1A: Core Infrastructure
+# Migration Log
 
 ## Overview
 
-This document tracks the migration of core infrastructure components from the private `Ohlala-bot/simple-app` repository to the open-source `ohlala-smartops-public` repository.
+This document tracks the migration of components from the private `Ohlala-bot/simple-app` repository to the open-source `ohlala-smartops-public` repository.
+
+---
+
+# Phase 1A: Core Infrastructure
 
 **Migration Date**: 2025-11-01
 **Branch**: `feat/migrate-core-infrastructure`
-**Phase**: 1A - Core Infrastructure
+**Status**: ✅ Completed and Merged
 
 ## Migration Summary
 
@@ -196,10 +200,267 @@ No new environment variables required. All configuration already exists in `Sett
 ## Contributors
 
 - Migration performed by: Claude (AI Assistant)
+- Reviewed by: [Completed]
+
+---
+
+# Phase 1B: AI Prompts & MCP Foundation
+
+**Migration Date**: 2025-11-01
+**Branch**: `feat/phase1b-ai-prompts-mcp-foundation`
+**Status**: ✅ Completed
+
+## Migration Summary
+
+### ✅ Components Migrated
+
+#### 1. Bedrock Prompts (`src/ohlala_smartops/ai/prompts.py`)
+
+- **Source**: `simple-app/integrations/bedrock_prompts.py` (571 lines)
+- **Destination**: `src/ohlala_smartops/ai/prompts.py` (593 lines)
+- **Status**: ✅ Migrated and Modernized
+
+**Changes Made**:
+
+- Updated type hints to modern Python 3.13+ style (`list[str]` vs `List[str]`, `str | None` vs `Optional[str]`)
+- Added comprehensive module-level documentation
+- Added `# ruff: noqa: E501` to disable line-length checking for embedded scripts
+- Enhanced docstrings with detailed examples
+- Used `Final` type annotation for base prompt constant
+- Maintained all original operational guidelines and SSM scripting patterns
+- Preserved extensive PowerShell and Bash script examples
+
+**Exports**: Added to `src/ohlala_smartops/ai/__init__.py`
+
+#### 2. MCP Exceptions (`src/ohlala_smartops/mcp/exceptions.py`)
+
+- **Source**: `simple-app/mcp/exceptions.py` (32 lines)
+- **Destination**: `src/ohlala_smartops/mcp/exceptions.py` (90 lines)
+- **Status**: ✅ Migrated and Modernized
+
+**Changes Made**:
+
+- Added comprehensive module-level documentation
+- Added detailed docstrings for each exception class
+- Added usage examples in docstrings
+- Improved code organization and readability
+- Maintained exception hierarchy (all inherit from `MCPError`)
+
+**Exceptions Defined**:
+
+- `MCPError` - Base exception for all MCP errors
+- `MCPConnectionError` - Connection failures
+- `MCPTimeoutError` - Operation timeouts
+- `MCPToolNotFoundError` - Tool not available
+- `MCPAuthenticationError` - Authentication failures
+
+**Exports**: Added to `src/ohlala_smartops/mcp/__init__.py`
+
+#### 3. MCP HTTP Client (`src/ohlala_smartops/mcp/http_client.py`)
+
+- **Source**: `simple-app/mcp_http_client.py` (214 lines)
+- **Destination**: `src/ohlala_smartops/mcp/http_client.py` (445 lines)
+- **Status**: ✅ Migrated and Modernized
+
+**Changes Made**:
+
+- **Configuration**: Integrated with Pydantic Settings (replaced environment variables)
+  - `MCP_MAX_RETRIES` → `settings.mcp_max_retries`
+  - `MCP_BASE_DELAY` → `settings.mcp_base_delay`
+  - `MCP_MAX_DELAY` → `settings.mcp_max_delay`
+  - `MCP_BACKOFF_MULTIPLIER` → `settings.mcp_backoff_multiplier`
+
+- **Type Safety**: Updated to modern Python 3.13+ type hints
+  - `dict[str, Any]` instead of `Dict[str, Any]`
+  - `list[dict[str, Any]]` instead of `List[Dict[str, Any]]`
+  - `str | None` instead of `Optional[str]`
+  - Added `Final` type annotations for constants
+
+- **Error Handling**: Enhanced exception hierarchy
+  - Raises `MCPAuthenticationError` for auth failures (401, 403, JSON-RPC -32003)
+  - Raises `MCPTimeoutError` for timeout errors
+  - Raises `MCPConnectionError` for network issues
+  - Raises `MCPError` for generic JSON-RPC errors
+  - Better error messages with context
+
+- **Code Quality**:
+  - Added comprehensive docstrings with Google-style format
+  - Added usage examples for all public methods
+  - Improved code organization and readability
+  - Added `noqa` comments for unavoidable complexity warnings
+  - Fixed nested context managers (used combined `with` statement)
+
+- **Retry Logic**: Maintained robust exponential backoff
+  - Automatic retry for transient errors (429, 500, 502, 503, 504)
+  - Exponential backoff with jitter to prevent thundering herd
+  - No retry for authentication errors
+  - Configurable max retries and delays
+
+**Exports**: Added to `src/ohlala_smartops/mcp/__init__.py`
+
+### Configuration Integration
+
+All MCP configuration settings already exist in `settings.py` (lines 148-174):
+
+```python
+mcp_max_retries: int = Field(default=3, ge=0, le=10)
+mcp_base_delay: float = Field(default=1.0, ge=0.1, le=10.0)
+mcp_max_delay: float = Field(default=16.0, ge=1.0, le=60.0)
+mcp_backoff_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
+```
+
+No new environment variables required.
+
+## Code Quality
+
+### ✅ All Quality Checks Passed
+
+- **Black**: All files formatted successfully
+- **Ruff**: All lint checks passed
+- **MyPy**: Strict type checking passed with no errors
+- **Tests**: All unit tests passing
+
+### Test Coverage
+
+Created comprehensive unit tests:
+
+- **test_prompts.py** (6 tests): Tests for prompt generation functions
+  - Tool section formatting
+  - System prompt generation
+  - Context injection
+  - Instance ID handling
+  - Module exports
+
+- **test_mcp_exceptions.py** (7 tests): Tests for MCP exception hierarchy
+  - Exception inheritance
+  - Error message handling
+  - Module exports
+
+**Status**: ✅ 13 tests passing
+
+## Architecture Improvements
+
+### Modernization
+
+1. **Type Hints**: All code uses Python 3.13+ modern type hints
+   - `dict` instead of `Dict`
+   - `list` instead of `List`
+   - `str | None` instead of `Optional[str]`
+   - `Final` for constants
+
+2. **Settings Integration**: MCP HTTP client uses Pydantic Settings
+   - Type-safe configuration
+   - Validation at startup
+   - No more environment variable parsing in client code
+   - Centralized configuration management
+
+3. **Exception Hierarchy**: Custom exceptions for better error handling
+   - `MCPAuthenticationError` for auth issues (don't retry)
+   - `MCPTimeoutError` for timeout scenarios
+   - `MCPConnectionError` for network failures
+   - `MCPToolNotFoundError` for missing tools
+   - All inherit from `MCPError` for broad exception handling
+
+4. **Documentation**: Comprehensive docstrings throughout
+   - Google-style docstrings
+   - Type hints in signatures
+   - Usage examples for all public APIs
+   - Clear parameter and return descriptions
+
+### Code Organization
+
+1. **Module Structure**: Components placed in appropriate modules
+   - `ai/` for AI-related utilities (prompts, model selection)
+   - `mcp/` for MCP protocol implementation (client, exceptions)
+
+2. **Exports**: Proper `__init__.py` exports for clean imports
+
+   ```python
+   from ohlala_smartops.ai import get_system_prompt
+   from ohlala_smartops.mcp import MCPHTTPClient, MCPError
+   ```
+
+3. **Constants**: Used `Final` type hints for immutability
+   - `_BASE_SYSTEM_PROMPT`: Final prompt template
+   - `_JSONRPC_RATE_LIMIT_ERROR`: Final error code
+   - `_RETRYABLE_HTTP_CODES`: Final frozen set of HTTP codes
+
+## Breaking Changes
+
+None. These are new components that build on existing infrastructure from Phase 1A.
+
+## Dependencies
+
+Phase 1B components have no external dependencies beyond Phase 1A:
+
+- `prompts.py`: Standalone, no dependencies
+- `exceptions.py`: Standalone, no dependencies
+- `http_client.py`: Depends on:
+  - `aiohttp` (already in dependencies)
+  - `ohlala_smartops.config.get_settings()` (Phase 1A)
+  - `ohlala_smartops.mcp.exceptions` (Phase 1B)
+
+## Testing Strategy
+
+Unit tests focus on:
+
+1. Function behavior and output correctness
+2. Exception handling and error propagation
+3. Module exports and imports
+4. Type safety validation
+
+Future testing phases will add:
+
+- Integration tests with live MCP servers
+- End-to-end tests with Bedrock client
+- Performance and stress testing
+- Mock-based retry logic validation
+
+## Next Steps
+
+### Phase 2A: MCP Manager & Write Operations
+
+**Goal**: Enable MCP communication and approval workflows
+
+1. Migrate `cards/approval_cards.py` → `src/ohlala_smartops/cards/approval_cards.py`
+2. Migrate `write_operation_manager.py` → `src/ohlala_smartops/workflow/write_operations.py`
+3. Migrate `mcp/manager.py` → `src/ohlala_smartops/mcp/manager.py`
+4. Migrate `async_command_tracker.py` → `src/ohlala_smartops/workflow/command_tracker.py`
+5. Add comprehensive integration tests
+
+**Estimated Effort**: 12-16 hours
+**Risk**: HIGH (complex interdependencies)
+
+### Phase 2B: Bedrock Client
+
+**Goal**: Enable AI functionality
+
+1. Migrate `ai/bedrock_client.py` → `src/ohlala_smartops/ai/bedrock_client.py`
+2. Integrate with existing prompt system
+3. Add integration tests with mocked Bedrock
+4. Document usage patterns
+
+**Estimated Effort**: 12-16 hours
+**Risk**: HIGH (central component)
+
+## Migration Statistics
+
+- **Files Created**: 3
+- **Files Modified**: 2 (`__init__.py` files)
+- **Lines Added**: ~1,128 lines (including documentation)
+- **Lines of Tests**: 102 lines
+- **Migration Time**: ~4-5 hours
+- **Code Quality**: 100% pass rate on Black, Ruff, MyPy
+- **Test Pass Rate**: 100% (13/13 tests passing)
+
+## Contributors
+
+- Migration performed by: Claude (AI Assistant)
 - Reviewed by: [Pending]
 
 ## References
 
 - Source Repository: `/home/etienne/ohlala-project/Ohlala-bot/simple-app`
 - Destination Repository: `/home/etienne/ohlala-project/ohlala-smartops-public`
-- Migration Plan: Initial assessment documented in agent investigation
+- Phase 1A PR: Merged to main
+- Phase 1B PR: [To be created]
