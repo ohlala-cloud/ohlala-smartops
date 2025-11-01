@@ -11,6 +11,7 @@ This package provides AWS service integrations with:
 - SSM session management (interactive and port forwarding)
 - Resource tagging and tag-based queries
 - CloudWatch metrics (retrieve and publish)
+- CloudWatch custom metrics emitter for operational monitoring
 - Cost Explorer (cost tracking and forecasting)
 
 Example:
@@ -83,6 +84,7 @@ from ohlala_smartops.aws.exceptions import (
     TimeoutError,
     ValidationError,
 )
+from ohlala_smartops.aws.metrics_emitter import MetricsEmitter, get_metrics_emitter
 from ohlala_smartops.aws.ssm_commands import (
     SSMCommand,
     SSMCommandInvocation,
@@ -105,6 +107,7 @@ __all__ = [
     "EC2Instance",
     "EC2Manager",
     "MetricDataPoint",
+    "MetricsEmitter",
     "PermissionError",
     "ResourceNotFoundError",
     "ResourceTag",
@@ -121,4 +124,5 @@ __all__ = [
     "ValidationError",
     "create_aws_client",
     "execute_with_retry",
+    "get_metrics_emitter",
 ]
