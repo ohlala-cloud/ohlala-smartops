@@ -1,5 +1,6 @@
 """Unit tests for MCP exceptions."""
 
+from ohlala_smartops import mcp
 from ohlala_smartops.mcp.exceptions import (
     MCPAuthenticationError,
     MCPConnectionError,
@@ -54,8 +55,6 @@ def test_mcp_tool_not_found_error() -> None:
 
 def test_module_exports() -> None:
     """Test that the MCP module exports all exception classes."""
-    from ohlala_smartops import mcp
-
     assert hasattr(mcp, "MCPError")
     assert hasattr(mcp, "MCPConnectionError")
     assert hasattr(mcp, "MCPTimeoutError")

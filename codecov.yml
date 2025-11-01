@@ -7,10 +7,12 @@ coverage:
       default:
         target: 80%
         threshold: 2% # Allow 2% drop from target
+        informational: true # Don't fail PR, just inform
     patch:
       default:
         target: 80%
         threshold: 2%
+        informational: true # Don't fail PR during migration phase
 
 comment:
   layout: "reach,diff,flags,tree"

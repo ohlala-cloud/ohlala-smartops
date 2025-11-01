@@ -1,5 +1,6 @@
 """Unit tests for AI prompts module."""
 
+from ohlala_smartops.ai import prompts
 from ohlala_smartops.ai.prompts import get_available_tools_section, get_system_prompt
 
 
@@ -57,7 +58,5 @@ def test_get_system_prompt_with_instance_id() -> None:
 
 def test_module_exports() -> None:
     """Test that the prompts module exports expected functions."""
-    from ohlala_smartops.ai import prompts
-
     assert hasattr(prompts, "get_system_prompt")
     assert hasattr(prompts, "get_available_tools_section")
