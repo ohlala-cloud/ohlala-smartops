@@ -36,6 +36,7 @@ dependencies = [
     "aioboto3>=12.0.0",
     # Microsoft Teams Bot Framework
     "botbuilder-core>=4.15.0",
+    "botbuilder-integration-aiohttp>=4.15.0",
     "botbuilder-schema>=4.15.0",
     "botframework-connector>=4.15.0",
     # AI/ML
@@ -186,6 +187,11 @@ ignore_missing_imports = true
 module = "ohlala_smartops.config.settings"
 # Allow subclassing Pydantic BaseSettings which may have Any type
 disallow_subclassing_any = false
+
+[[tool.mypy.overrides]]
+module = "ohlala_smartops.bot.*"
+# Allow untyped decorators for FastAPI routes
+disallow_untyped_decorators = false
 
 [tool.pytest.ini_options]
 minversion = "8.0"
