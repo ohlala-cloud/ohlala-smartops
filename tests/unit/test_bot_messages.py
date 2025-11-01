@@ -6,6 +6,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ohlala_smartops.bot.app import create_app
+from ohlala_smartops.bot.messages import (
+    get_adapter,
+    get_handler,
+    get_state_manager,
+    initialize_bot_services,
+)
+from ohlala_smartops.config.settings import Settings
 
 
 @pytest.fixture
@@ -35,8 +42,6 @@ class TestGetterFunctions:
     @patch("ohlala_smartops.bot.messages._adapter")
     def test_get_adapter(self, mock_adapter: MagicMock, mock_ensure: MagicMock) -> None:
         """Test get_adapter function."""
-        from ohlala_smartops.bot.messages import get_adapter
-
         mock_adapter_instance = MagicMock()
         mock_adapter.__bool__ = MagicMock(return_value=True)
         mock_adapter.return_value = mock_adapter_instance
@@ -50,8 +55,6 @@ class TestGetterFunctions:
     @patch("ohlala_smartops.bot.messages._handler")
     def test_get_handler(self, mock_handler: MagicMock, mock_ensure: MagicMock) -> None:
         """Test get_handler function."""
-        from ohlala_smartops.bot.messages import get_handler
-
         get_handler()
 
         mock_ensure.assert_called_once()
@@ -60,8 +63,6 @@ class TestGetterFunctions:
     @patch("ohlala_smartops.bot.messages._state_manager")
     def test_get_state_manager(self, mock_state: MagicMock, mock_ensure: MagicMock) -> None:
         """Test get_state_manager function."""
-        from ohlala_smartops.bot.messages import get_state_manager
-
         get_state_manager()
 
         mock_ensure.assert_called_once()
@@ -80,9 +81,6 @@ class TestInitializeBotServices:
         mock_create_adapter: MagicMock,
     ) -> None:
         """Test initializing bot services with custom settings."""
-        from ohlala_smartops.bot.messages import initialize_bot_services
-        from ohlala_smartops.config.settings import Settings
-
         settings = Settings()
 
         initialize_bot_services(settings)
@@ -103,8 +101,6 @@ class TestInitializeBotServices:
         mock_create_adapter: MagicMock,
     ) -> None:
         """Test initializing bot services without settings."""
-        from ohlala_smartops.bot.messages import initialize_bot_services
-
         # Should create Settings if None provided
         initialize_bot_services(None)
 
