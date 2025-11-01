@@ -415,7 +415,6 @@ class MetricsEmitter:
 @lru_cache
 def get_metrics_emitter(
     namespace: str = DEFAULT_NAMESPACE,
-    settings: Settings | None = None,
 ) -> MetricsEmitter:
     """Get cached metrics emitter instance.
 
@@ -424,8 +423,6 @@ def get_metrics_emitter(
 
     Args:
         namespace: CloudWatch namespace for metrics. Defaults to "OhlalaSmartOps".
-        settings: Application settings. If None, uses get_settings().
-            Defaults to None.
 
     Returns:
         Configured MetricsEmitter instance.
@@ -437,7 +434,7 @@ def get_metrics_emitter(
         >>> # Or with custom namespace:
         >>> prod_emitter = get_metrics_emitter(namespace="MyApp/Production")
     """
-    return MetricsEmitter(namespace=namespace, settings=settings)
+    return MetricsEmitter(namespace=namespace)
 
 
 # ============================================================================

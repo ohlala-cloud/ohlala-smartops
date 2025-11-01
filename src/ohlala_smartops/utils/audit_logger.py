@@ -383,14 +383,11 @@ class AuditLogger:
 
 
 @lru_cache
-def get_audit_logger(settings: Settings | None = None) -> AuditLogger:
+def get_audit_logger() -> AuditLogger:
     """Get cached audit logger instance.
 
     The audit logger is cached to avoid repeated initialization. The cache
     is cleared on application restart.
-
-    Args:
-        settings: Application settings. If None, uses get_settings().
 
     Returns:
         Configured AuditLogger instance.
@@ -399,4 +396,4 @@ def get_audit_logger(settings: Settings | None = None) -> AuditLogger:
         >>> audit_logger = get_audit_logger()
         >>> audit_logger.log_security_event(...)
     """
-    return AuditLogger(settings=settings)
+    return AuditLogger()
