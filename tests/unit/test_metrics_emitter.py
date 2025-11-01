@@ -9,6 +9,8 @@ from ohlala_smartops.aws.cloudwatch import CloudWatchManager
 from ohlala_smartops.aws.metrics_emitter import (
     DEFAULT_NAMESPACE,
     MetricsEmitter,
+    emit_command_execution,
+    emit_unauthorized_access,
     get_metrics_emitter,
 )
 from ohlala_smartops.config.settings import Settings
@@ -483,10 +485,6 @@ class TestConvenienceFunctions:
             mock_emitter.emit_unauthorized_access = AsyncMock()
             mock_get.return_value = mock_emitter
 
-            from ohlala_smartops.aws.metrics_emitter import (
-                emit_unauthorized_access,
-            )
-
             await emit_unauthorized_access(source_ip="192.168.1.1")
 
             mock_emitter.emit_unauthorized_access.assert_called_once_with("192.168.1.1")
@@ -498,10 +496,6 @@ class TestConvenienceFunctions:
             mock_emitter = MagicMock()
             mock_emitter.emit_command_execution = AsyncMock()
             mock_get.return_value = mock_emitter
-
-            from ohlala_smartops.aws.metrics_emitter import (
-                emit_command_execution,
-            )
 
             await emit_command_execution("start_instance", True, 1234.5)
 
