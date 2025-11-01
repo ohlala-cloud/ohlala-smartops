@@ -45,18 +45,12 @@ class OhlalaAdapter(CloudAdapter):  # type: ignore[misc]
         # Create credential provider
         credential_provider = SimpleCredentialProvider(
             app_id=settings.microsoft_app_id,
-            app_password=settings.microsoft_app_password,
+            password=settings.microsoft_app_password,
         )
-
-        # Create authentication configuration
-        auth_config = AuthenticationConfiguration()
 
         # Create authentication
         bot_framework_authentication = ConfigurationBotFrameworkAuthentication(
-            settings=None,  # Use environment variables
-            auth_configuration=auth_config,
-            credential_provider=credential_provider,
-            channel_provider=None,
+            credential_provider=credential_provider
         )
 
         # Initialize CloudAdapter

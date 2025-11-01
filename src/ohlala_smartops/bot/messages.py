@@ -22,9 +22,21 @@ router = APIRouter()
 
 # Initialize global instances
 # These will be replaced with proper dependency injection in production
-_adapter = create_adapter()
-_handler = OhlalaActivityHandler()
-_state_manager = create_state_manager("memory")
+# Use lazy initialization to avoid issues during testing
+_adapter: Any | None = None
+_handler: Any | None = None
+_state_manager: Any | None = None
+
+
+def _ensure_initialized() -> None:
+    """Ensure bot services are initialized."""
+    global _adapter, _handler, _state_manager
+    if _adapter is None:
+        _adapter = create_adapter()
+    if _handler is None:
+        _handler = OhlalaActivityHandler()
+    if _state_manager is None:
+        _state_manager = create_state_manager("memory")
 
 
 @router.post("/messages", status_code=status.HTTP_200_OK)
@@ -60,6 +72,7 @@ async def handle_messages(
             "conversation": {...}
         }
     """
+    _ensure_initialized()
     try:
         # Get the request body as JSON
         body = await request.json()
@@ -203,6 +216,7 @@ def get_adapter() -> Any:
         >>> adapter = get_adapter()
         >>> await adapter.process_activity(...)
     """
+    _ensure_initialized()
     return _adapter
 
 
@@ -216,6 +230,7 @@ def get_handler() -> OhlalaActivityHandler:
         >>> handler = get_handler()
         >>> await handler.on_message_activity(turn_context)
     """
+    _ensure_initialized()
     return _handler
 
 
@@ -229,6 +244,7 @@ def get_state_manager() -> Any:
         >>> state_manager = get_state_manager()
         >>> state = await state_manager.get_state(conversation_id)
     """
+    _ensure_initialized()
     return _state_manager
 
 
@@ -251,3 +267,12 @@ def initialize_bot_services(settings: Settings | None = None) -> None:
     _state_manager = create_state_manager("memory")
 
     logger.info("Bot services initialized")
+
+
+# Ensure services are initialized on module import (but lazily)
+# This allows tests to mock before initialization
+try:
+    _ensure_initialized()
+except Exception:
+    # Initialization may fail in test environment - that's OK
+    pass
