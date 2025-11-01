@@ -5,8 +5,9 @@ activities from Microsoft Teams, routing them to appropriate handlers,
 and managing conversation state.
 """
 
+import contextlib
 import logging
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, Header, HTTPException, Request, Response, status
 
@@ -30,7 +31,7 @@ _state_manager: Any | None = None
 
 def _ensure_initialized() -> None:
     """Ensure bot services are initialized."""
-    global _adapter, _handler, _state_manager
+    global _adapter, _handler, _state_manager  # noqa: PLW0603
     if _adapter is None:
         _adapter = create_adapter()
     if _handler is None:
@@ -240,7 +241,7 @@ def get_handler() -> OhlalaActivityHandler:
     """
     _ensure_initialized()
     assert _handler is not None
-    return _handler
+    return cast(OhlalaActivityHandler, _handler)
 
 
 def get_state_manager() -> Any:
@@ -281,8 +282,6 @@ def initialize_bot_services(settings: Settings | None = None) -> None:
 
 # Ensure services are initialized on module import (but lazily)
 # This allows tests to mock before initialization
-try:
+# Initialization may fail in test environment - that's OK
+with contextlib.suppress(Exception):
     _ensure_initialized()
-except Exception:
-    # Initialization may fail in test environment - that's OK
-    pass

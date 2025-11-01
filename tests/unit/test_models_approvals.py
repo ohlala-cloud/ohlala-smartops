@@ -1,5 +1,6 @@
 """Tests for approval workflow models."""
 
+import time
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -73,8 +74,6 @@ class TestApprovalRequest:
             expires_at=datetime.now(tz=UTC) + timedelta(milliseconds=1),
         )
         # Wait a tiny bit and it should be expired
-        import time
-
         time.sleep(0.01)
         assert expired_request.is_expired()
 
@@ -206,8 +205,6 @@ class TestApprovalRequest:
             approval_level=ApprovalLevel.SINGLE,
             expires_at=datetime.now(tz=UTC) + timedelta(milliseconds=1),
         )
-
-        import time
 
         time.sleep(0.01)
 

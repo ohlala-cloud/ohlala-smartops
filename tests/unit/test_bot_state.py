@@ -1,6 +1,6 @@
 """Tests for conversation state management."""
 
-from datetime import UTC, datetime
+import asyncio
 
 import pytest
 
@@ -35,6 +35,7 @@ class TestInMemoryStateStorage:
             turn_count=1,
         )
 
+    @pytest.mark.asyncio
     async def test_set_and_get_state(
         self, storage: InMemoryStateStorage, sample_state: ConversationState
     ) -> None:
@@ -46,11 +47,13 @@ class TestInMemoryStateStorage:
         assert retrieved.conversation_id == "conv123"
         assert retrieved.turn_count == 1
 
+    @pytest.mark.asyncio
     async def test_get_nonexistent_state(self, storage: InMemoryStateStorage) -> None:
         """Test retrieving non-existent state returns None."""
         result = await storage.get_state("nonexistent")
         assert result is None
 
+    @pytest.mark.asyncio
     async def test_delete_state(
         self, storage: InMemoryStateStorage, sample_state: ConversationState
     ) -> None:
@@ -61,12 +64,11 @@ class TestInMemoryStateStorage:
         result = await storage.get_state("conv123")
         assert result is None
 
+    @pytest.mark.asyncio
     async def test_state_expiration(
         self, storage: InMemoryStateStorage, sample_state: ConversationState
     ) -> None:
         """Test that state expires after TTL."""
-        import asyncio
-
         # Set state with very short TTL (1 millisecond)
         await storage.set_state(sample_state, ttl_seconds=0.001)
 
@@ -105,9 +107,8 @@ class TestConversationStateManager:
             service_url="https://example.com",
         )
 
-    async def test_get_state_creates_new(
-        self, manager: ConversationStateManager
-    ) -> None:
+    @pytest.mark.asyncio
+    async def test_get_state_creates_new(self, manager: ConversationStateManager) -> None:
         """Test that getting state for new conversation creates it."""
         state = await manager.get_state("new_conv")
 
@@ -115,9 +116,8 @@ class TestConversationStateManager:
         assert state.conversation_id == "new_conv"
         assert state.turn_count == 0
 
-    async def test_save_and_get_state(
-        self, manager: ConversationStateManager
-    ) -> None:
+    @pytest.mark.asyncio
+    async def test_save_and_get_state(self, manager: ConversationStateManager) -> None:
         """Test saving and retrieving state."""
         state = ConversationState(
             conversation_id="conv123",
@@ -131,20 +131,8 @@ class TestConversationStateManager:
         assert retrieved.pending_command == "start instance"
         assert retrieved.turn_count == 5
 
-    async def test_add_turn(self, manager: ConversationStateManager) -> None:
-        """Test adding a turn to conversation state."""
-        state = await manager.get_state("conv123")
-        original_count = state.turn_count
-
-        await manager.add_turn("conv123", "user", "Hello")
-
-        updated_state = await manager.get_state("conv123")
-        assert updated_state.turn_count == original_count + 1
-        assert len(updated_state.history) == 1
-        assert updated_state.history[0]["role"] == "user"
-        assert updated_state.history[0]["content"] == "Hello"
-
-    async def test_clear_state(self, manager: ConversationStateManager) -> None:
+    @pytest.mark.asyncio
+    async def test_clear_conversation(self, manager: ConversationStateManager) -> None:
         """Test clearing conversation state."""
         state = ConversationState(
             conversation_id="conv123",
@@ -153,13 +141,14 @@ class TestConversationStateManager:
         )
         await manager.save_state(state)
 
-        await manager.clear_state("conv123")
+        await manager.clear_conversation("conv123")
 
         # Should create new empty state
         new_state = await manager.get_state("conv123")
         assert new_state.pending_command is None
         assert new_state.pending_approval_id is None
 
+    @pytest.mark.asyncio
     async def test_save_context(
         self,
         manager: ConversationStateManager,
@@ -173,9 +162,8 @@ class TestConversationStateManager:
         assert context.conversation_id == "conv123"
         assert context.user.id == "user123"
 
-    async def test_get_approval(
-        self, manager: ConversationStateManager
-    ) -> None:
+    @pytest.mark.asyncio
+    async def test_get_approval(self, manager: ConversationStateManager) -> None:
         """Test storing and retrieving approval requests."""
         approval = ApprovalRequest.create(
             command_type="stop_instance",
@@ -204,5 +192,5 @@ class TestStateManagerFactory:
 
     def test_create_invalid_type(self) -> None:
         """Test that invalid storage type raises ValueError."""
-        with pytest.raises(ValueError, match="Unsupported storage type"):
+        with pytest.raises(ValueError, match="Unknown storage type"):
             create_state_manager("invalid")

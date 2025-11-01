@@ -1,7 +1,5 @@
 """Tests for conversation context models."""
 
-from datetime import UTC, datetime, timedelta
-
 import pytest
 from pydantic import ValidationError
 

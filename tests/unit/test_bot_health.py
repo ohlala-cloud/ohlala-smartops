@@ -4,20 +4,21 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
+from ohlala_smartops.bot.app import create_app
 
 
 @pytest.fixture
 def client() -> TestClient:
     """Create a test client for the FastAPI app."""
     # Mock the adapter creation to avoid Bot Framework initialization
-    with patch("ohlala_smartops.bot.messages.create_adapter", return_value=MagicMock()):
-        with patch("ohlala_smartops.bot.messages.create_state_manager", return_value=MagicMock()):
-            from ohlala_smartops.bot.app import create_app
-
-            app = create_app()
-            return TestClient(app)
+    with (
+        patch("ohlala_smartops.bot.messages.create_adapter", return_value=MagicMock()),
+        patch("ohlala_smartops.bot.messages.create_state_manager", return_value=MagicMock()),
+    ):
+        app = create_app()
+        return TestClient(app)
 
 
 class TestHealthEndpoints:
@@ -105,7 +106,7 @@ class TestHealthStatusModel:
         assert datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
         # Verify checks have status field
-        for check_name, check_data in data["checks"].items():
+        for check_data in data["checks"].values():
             assert "status" in check_data
             assert check_data["status"] in [
                 "healthy",
@@ -124,5 +125,5 @@ class TestHealthStatusModel:
         assert datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
         # Verify components are boolean
-        for component_name, component_ready in data["components"].items():
+        for component_ready in data["components"].values():
             assert isinstance(component_ready, bool)

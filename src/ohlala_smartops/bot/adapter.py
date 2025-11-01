@@ -10,7 +10,6 @@ from botbuilder.core import TurnContext
 from botbuilder.integration.aiohttp import CloudAdapter, ConfigurationBotFrameworkAuthentication
 from botbuilder.schema import Activity, ConversationReference
 from botframework.connector.auth import (
-    AuthenticationConfiguration,
     SimpleCredentialProvider,
 )
 
