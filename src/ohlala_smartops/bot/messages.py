@@ -73,6 +73,9 @@ async def handle_messages(
         }
     """
     _ensure_initialized()
+    assert _adapter is not None
+    assert _handler is not None
+
     try:
         # Get the request body as JSON
         body = await request.json()
@@ -90,6 +93,7 @@ async def handle_messages(
             Args:
                 turn_context: Turn context from Bot Framework.
             """
+            assert _handler is not None
             await _handler.on_turn(turn_context)
 
         # Process activity with authentication
@@ -174,6 +178,9 @@ async def send_proactive_message(request: Request) -> dict[str, str]:
             "message": "Hello from bot!"
         }
     """
+    _ensure_initialized()
+    assert _adapter is not None
+
     try:
         body = await request.json()
 
@@ -217,6 +224,7 @@ def get_adapter() -> Any:
         >>> await adapter.process_activity(...)
     """
     _ensure_initialized()
+    assert _adapter is not None
     return _adapter
 
 
@@ -231,6 +239,7 @@ def get_handler() -> OhlalaActivityHandler:
         >>> await handler.on_message_activity(turn_context)
     """
     _ensure_initialized()
+    assert _handler is not None
     return _handler
 
 
@@ -245,6 +254,7 @@ def get_state_manager() -> Any:
         >>> state = await state_manager.get_state(conversation_id)
     """
     _ensure_initialized()
+    assert _state_manager is not None
     return _state_manager
 
 
