@@ -1,6 +1,7 @@
 """Utility modules for Ohlala SmartOps.
 
 This package provides common utilities for:
+- Audit logging for security and compliance
 - PowerShell command validation and fixing
 - SSM command validation and preprocessing
 - Command formatting and sanitization
@@ -8,6 +9,7 @@ This package provides common utilities for:
 - AWS API throttling and rate limiting
 """
 
+from ohlala_smartops.utils.audit_logger import AuditLogger, get_audit_logger
 from ohlala_smartops.utils.bedrock_throttler import (
     BedrockThrottler,
     get_bedrock_throttler,
@@ -38,6 +40,7 @@ from ohlala_smartops.utils.token_tracker import (
 )
 
 __all__ = [
+    "AuditLogger",
     "BedrockThrottler",
     "CircuitBreakerOpenError",
     "CircuitBreakerTrippedError",
@@ -48,6 +51,7 @@ __all__ = [
     "detect_powershell_syntax_errors",
     "estimate_bedrock_input_tokens",
     "fix_common_issues",
+    "get_audit_logger",
     "get_bedrock_throttler",
     "get_global_throttler",
     "get_token_tracker",
