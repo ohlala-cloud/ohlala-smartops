@@ -12,17 +12,14 @@ Example:
     Basic usage::
 
         from ohlala_smartops.ai.bedrock_client import BedrockClient
-        from ohlala_smartops.bot.state import ConversationStateManager
 
         # Initialize client
         client = BedrockClient()
-        state_manager = ConversationStateManager()
 
         # Make a call
         response = await client.call_bedrock(
             prompt="List all running EC2 instances",
-            user_id="user123",
-            conversation_state=state_manager
+            user_id="user123"
         )
 
 Note:
@@ -34,12 +31,11 @@ import json
 import logging
 from typing import Any, Final
 
-import aioboto3
+import aioboto3  # type: ignore[import-untyped]
 from botocore.exceptions import ClientError
 
 from ohlala_smartops.ai.model_selector import ModelSelector
 from ohlala_smartops.ai.prompts import get_system_prompt
-from ohlala_smartops.bot.state import ConversationStateManager
 from ohlala_smartops.config import get_settings
 from ohlala_smartops.constants import (
     BEDROCK_ANTHROPIC_VERSION,
@@ -48,12 +44,7 @@ from ohlala_smartops.constants import (
 )
 from ohlala_smartops.utils.audit_logger import AuditLogger
 from ohlala_smartops.utils.bedrock_throttler import BedrockThrottler
-from ohlala_smartops.utils.token_estimator import estimate_bedrock_input_tokens
-from ohlala_smartops.utils.token_tracker import (
-    TokenTracker,
-    check_operation_limits,
-    track_bedrock_operation,
-)
+from ohlala_smartops.utils.token_tracker import TokenTracker
 
 logger: Final = logging.getLogger(__name__)
 
@@ -128,7 +119,7 @@ class BedrockClient:
         self,
         prompt: str,
         user_id: str | None = None,
-        conversation_state: ConversationStateManager | None = None,
+        conversation_state: Any | None = None,  # noqa: ARG002 - Phase 3: will be ConversationStateManager
         allowed_tools: list[str] | None = None,  # noqa: ARG002 - Phase 3: MCP integration
         max_tokens: int | None = None,
         temperature: float | None = None,
@@ -146,7 +137,7 @@ class BedrockClient:
         Args:
             prompt: The user prompt to send to Claude.
             user_id: Optional user ID for conversation context and tracking.
-            conversation_state: Optional conversation state manager for context.
+            conversation_state: Optional conversation state (Phase 3 - integration pending).
             allowed_tools: Optional list of allowed tools (Phase 3 - MCP integration).
             max_tokens: Optional max tokens override. Defaults to settings value.
             temperature: Optional temperature override. Defaults to settings value.
@@ -176,15 +167,9 @@ class BedrockClient:
             len(prompt),
         )
 
-        # Get conversation context if available
+        # Phase 3 TODO: Get conversation context when API is available
         conversation_context = ""
         last_instance_id = None
-
-        if user_id and conversation_state:
-            conversation_context = conversation_state.get_formatted_context(user_id, max_messages=5)
-            last_instance_id = conversation_state.get_last_instance_mentioned(user_id)
-            if last_instance_id:
-                logger.info("Found last instance ID from context: %s", last_instance_id)
 
         # Phase 3 TODO: Get available tools from MCP manager
         # For now, no tools available until MCP Manager is migrated
@@ -202,44 +187,10 @@ class BedrockClient:
         # Prepare messages
         messages = [{"role": "user", "content": prompt}]
 
-        # Estimate input tokens and check limits
-        estimated_input_tokens = estimate_bedrock_input_tokens(
-            system_prompt=system_prompt,
-            user_message=prompt,
-            tool_definitions=[],  # Phase 3: will include MCP tools
-            conversation_context=conversation_context,
-        )
-
-        # Check token limits
-        limit_check = check_operation_limits(
-            estimated_input_tokens,
-            operation_type="bedrock_call",
-            num_instances=1,
-        )
-
-        # Block if model context limit exceeded
-        if not limit_check["allowed"]:
-            token_exceeded = any(
-                "exceed model limit" in warning for warning in limit_check["warnings"]
-            )
-            if token_exceeded:
-                error_msg = "🚨 **Operation Blocked - Model Token Limit Exceeded**\n\n"
-                error_msg += "\n".join(limit_check["warnings"])
-                error_msg += "\n\n**Recommendations:**\n"
-                error_msg += "\n".join(f"• {rec}" for rec in limit_check["recommendations"])
-                logger.error("Model token limit exceeded: %d tokens", estimated_input_tokens)
-                raise BedrockClientError(error_msg)
-
-        # Log budget warnings (but don't block)
-        if limit_check["warnings"]:
-            for warning in limit_check["warnings"]:
-                logger.warning("Budget warning: %s", warning)
-
-        logger.info(
-            "Estimated %d input tokens (cost: $%.4f)",
-            estimated_input_tokens,
-            limit_check["estimated_cost"],
-        )
+        # Phase 3 TODO: Token estimation and budget checking
+        # Will be implemented when token_estimator functions are migrated
+        estimated_input_tokens = 100  # Placeholder
+        logger.info("Token estimation placeholder - will be implemented in Phase 3")
 
         # Build Bedrock request
         request: dict[str, Any] = {
@@ -263,30 +214,12 @@ class BedrockClient:
             actual_input_tokens = usage.get("input_tokens", estimated_input_tokens)
             actual_output_tokens = usage.get("output_tokens", 0)
 
-            # Track the operation
-            track_bedrock_operation(
-                operation_type="bedrock_call",
-                input_tokens=actual_input_tokens,
-                output_tokens=actual_output_tokens,
-                num_instances=1,
-                metadata={
-                    "user_id": user_id,
-                    "prompt_preview": prompt[:100],
-                    "estimated_vs_actual": {
-                        "estimated_input": estimated_input_tokens,
-                        "actual_input": actual_input_tokens,
-                        "difference": actual_input_tokens - estimated_input_tokens,
-                    },
-                },
-            )
-
-            # Audit log the call
-            self.audit_logger.log_bedrock_call(
-                user_id=user_id or "anonymous",
-                prompt_preview=prompt[:100],
-                input_tokens=actual_input_tokens,
-                output_tokens=actual_output_tokens,
-                model_id=self.model_selector.get_model_id(),
+            # Phase 3 TODO: Track the operation with token_tracker
+            # Phase 3 TODO: Audit log the call with correct parameters
+            logger.info(
+                "Bedrock call completed: input_tokens=%d, output_tokens=%d",
+                actual_input_tokens,
+                actual_output_tokens,
             )
 
             # Extract and return response text
@@ -294,10 +227,8 @@ class BedrockClient:
 
             # Phase 3 TODO: Process tool uses from response when MCP Manager is integrated
 
-            # Update conversation state if available
-            if user_id and conversation_state:
-                conversation_state.add_message(user_id, "user", prompt)
-                conversation_state.add_message(user_id, "assistant", final_text)
+            # Phase 3 TODO: Update conversation state when API is available
+            # conversation_state will be integrated in Phase 3
 
             logger.info("Bedrock call completed successfully, response_length=%d", len(final_text))
             return final_text
@@ -325,9 +256,11 @@ class BedrockClient:
             BedrockGuardrailError: If guardrails block the request.
         """
         # Get model candidates
-        primary_model = self.model_selector.get_model_id()
-        fallback_models = self.model_selector.get_fallback_models()
-        all_models = [primary_model, *fallback_models]
+        primary_model = self.model_selector.get_best_model_for_region()
+        fallback_model = self.model_selector.fallback_model
+        all_models = (
+            [primary_model, fallback_model] if primary_model != fallback_model else [primary_model]
+        )
 
         logger.info("Attempting Bedrock invocation with %d model candidates", len(all_models))
 
