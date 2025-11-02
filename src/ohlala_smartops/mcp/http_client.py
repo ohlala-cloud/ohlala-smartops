@@ -31,6 +31,7 @@ from ohlala_smartops.mcp.exceptions import (
     MCPConnectionError,
     MCPError,
     MCPTimeoutError,
+    MCPToolNotFoundError,
 )
 
 logger: Final = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ logger: Final = logging.getLogger(__name__)
 # JSON-RPC error codes
 _JSONRPC_RATE_LIMIT_ERROR: Final[int] = -32002
 _JSONRPC_AUTH_ERROR: Final[int] = -32003
+_JSONRPC_METHOD_NOT_FOUND: Final[int] = -32601
 
 # HTTP status codes that should trigger retries
 _RETRYABLE_HTTP_CODES: Final[frozenset[int]] = frozenset({429, 500, 502, 503, 504})
@@ -265,6 +267,16 @@ class MCPHTTPClient:
                                     f"JSON-RPC authorization error {error_code}: {error_message}"
                                 ) from None
 
+                            # Check if this is a method/tool not found error
+                            if error_code == _JSONRPC_METHOD_NOT_FOUND:
+                                logger.error(
+                                    f"Tool not found (JSON-RPC {error_code}) for "
+                                    f"{method}: {error_message}"
+                                )
+                                raise MCPToolNotFoundError(
+                                    f"JSON-RPC method not found {error_code}: {error_message}"
+                                ) from None
+
                             # Non-retryable JSON-RPC error or max retries exceeded
                             raise MCPError(
                                 f"JSON-RPC error {error_code}: {error_message}"
@@ -279,7 +291,7 @@ class MCPHTTPClient:
                             logger.debug(f"🌐 HTTP CLIENT: {method} succeeded on first attempt")
                         return response.get("result")
 
-                    except (MCPError, MCPAuthenticationError):
+                    except (MCPError, MCPAuthenticationError, MCPToolNotFoundError):
                         # Re-raise our custom exceptions
                         raise
                     except Exception as json_error:
@@ -320,7 +332,7 @@ class MCPHTTPClient:
 
                         raise MCPError(f"JSON parse error: {json_error}") from json_error
 
-            except (MCPError, MCPAuthenticationError):
+            except (MCPError, MCPAuthenticationError, MCPToolNotFoundError):
                 # Re-raise our custom exceptions
                 raise
             except Exception as e:
