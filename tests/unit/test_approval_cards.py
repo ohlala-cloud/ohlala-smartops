@@ -5,6 +5,7 @@ import json
 import pytest
 
 from ohlala_smartops.cards import (
+    __all__,
     create_approved_confirmation_card,
     create_batch_approval_card,
     create_batch_approval_card_sync,
@@ -347,8 +348,6 @@ class TestModuleExports:
 
     def test_all_functions_exported(self) -> None:
         """Test that all public functions are in __all__."""
-        from ohlala_smartops.cards import __all__
-
         expected_exports = [
             "create_ssm_approval_card",
             "create_ssm_approval_card_sync",
@@ -363,15 +362,6 @@ class TestModuleExports:
 
     def test_functions_importable(self) -> None:
         """Test that all exported functions can be imported."""
-        from ohlala_smartops.cards import (
-            create_approved_confirmation_card,
-            create_batch_approval_card,
-            create_batch_approval_card_sync,
-            create_denied_confirmation_card,
-            create_ssm_approval_card,
-            create_ssm_approval_card_sync,
-        )
-
         # All functions should be callable
         assert callable(create_ssm_approval_card)
         assert callable(create_ssm_approval_card_sync)
