@@ -172,6 +172,8 @@ pretty = true
 
 [[tool.mypy.overrides]]
 module = [
+    "aioboto3",
+    "aioboto3.*",
     "botbuilder.*",
     "botframework.*",
     "matplotlib.*",
