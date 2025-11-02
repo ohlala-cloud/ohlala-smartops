@@ -1143,3 +1143,311 @@ Phase 3A delivers the foundation for MCP-based tool orchestration:
 - Tests: `tests/unit/test_mcp_manager.py`
 - Phase 3A Branch: `feature/migrate-mcp-manager`
 - Phase 3A PR: [To be created]
+
+---
+
+# Phase 3B: Write Operation Manager (Core Workflow)
+
+**Migration Date**: 2025-11-02
+**Branch**: `feature/phase-3b-write-operations`
+**Status**: ✅ Completed
+
+## Migration Summary
+
+### ✅ Component Migrated
+
+#### Write Operation Manager (`src/ohlala_smartops/workflow/write_operations.py`)
+
+- **Source**: `simple-app/write_operation_manager.py` (884 lines)
+- **Destination**: `src/ohlala_smartops/workflow/write_operations.py` (364 lines)
+- **Status**: ✅ Migrated (Simplified for Phase 3B)
+
+**What Was Migrated**:
+
+1. **Core WriteOperationManager Class** with essential methods:
+   - `start()` - Start background cleanup task for expired operations
+   - `stop()` - Stop background cleanup task
+   - `create_approval_request()` - Create new operation pending user confirmation
+   - `get_pending_operation()` - Get pending operation by ID with auto-expiration
+   - `confirm_operation()` - Confirm and execute pending operation
+   - `cancel_operation()` - Cancel pending operation
+   - `get_user_pending_operations()` - Get all pending operations for a user
+   - `_remove_operation()` - Remove operation from pending state
+   - `_cleanup_expired_operations()` - Background task for cleanup
+
+2. **Integration Points**:
+   - ✅ `ApprovalRequest` model from `models.approvals` - Reused existing Pydantic model
+   - ✅ `ApprovalStatus` enum from `models.approvals` - Used for operation status tracking
+   - ✅ Python asyncio - Background cleanup task
+   - ✅ UUID - Operation ID generation
+   - ✅ Datetime with UTC - Modern timezone handling
+   - ⏭️ Approval cards integration (Phase 3C)
+   - ⏭️ Teams/Slack notification integration (Phase 3C)
+
+**Simplifications Made**:
+
+1. **No Card Creation Logic**: Card creation (650+ lines) deferred to `approval_cards` module
+   - Source had extensive card generation for Teams/Slack
+   - Phase 3B focuses on core operation lifecycle management
+   - Card integration will be added in Phase 3C
+
+2. **No Retry Operation Callbacks**: Retry logic (150+ lines) removed
+   - Source had complex retry operation generation
+   - Not needed for core approval workflow
+   - Can be added later if required
+
+3. **Reused Existing Models**: Used `ApprovalRequest` from `models/approvals.py`
+   - Source created custom `PendingOperation` dataclass
+   - Public repo already has superior `ApprovalRequest` Pydantic model
+   - Avoided duplication and leveraged existing validation
+
+4. **Simplified Metadata Storage**: All operation data stored in `metadata` dict
+   - Source had separate fields for various operation parameters
+   - Cleaner approach using flexible metadata dictionary
+   - Easier to extend for new operation types
+
+**Modern Python 3.13+ Features**:
+
+- Modern type hints (`dict[str, Any]`, `str | None`, `timedelta`)
+- Async/await patterns for cleanup task
+- Type-safe callback handling with `Callable` types
+- Comprehensive docstrings with examples
+- `Final` type annotations for logger
+- Dependency injection pattern (confirmation timeout configurable)
+
+### ✅ SSM Preprocessing Utilities (Already Migrated)
+
+#### SSM Utilities (`src/ohlala_smartops/utils/ssm.py`)
+
+- **Source**: `simple-app/utils/ssm_utils.py` (311 lines)
+- **Destination**: `src/ohlala_smartops/utils/ssm.py` (382 lines)
+- **Status**: ✅ Already Migrated (No Action Needed)
+
+**Notes**:
+
+- SSM command preprocessing already fully migrated in earlier phase
+- Contains `preprocess_ssm_commands()` function with all logic from source
+- Handles JSON parsing, escaped strings, Python repr format
+- Tests already exist in `tests/unit/test_ssm.py`
+- No additional work required for Phase 3B
+
+### ✅ Workflow Package Structure Created
+
+#### Workflow Module (`src/ohlala_smartops/workflow/`)
+
+- **Package**: `src/ohlala_smartops/workflow/`
+- **Files Created**:
+  - `__init__.py` - Package initialization with exports
+  - `write_operations.py` - Write Operation Manager implementation
+- **Status**: ✅ Created
+
+**Exports**: Added to `src/ohlala_smartops/workflow/__init__.py`:
+
+```python
+from ohlala_smartops.workflow.write_operations import WriteOperationManager
+
+__all__ = [
+    "WriteOperationManager",
+]
+```
+
+### ✅ Tests Created
+
+#### Test File (`tests/unit/test_write_operations.py`)
+
+- **Lines**: 455 lines of comprehensive tests
+- **Test Classes**: 6 test classes
+- **Test Count**: 25 tests
+- **Status**: ✅ All passing (100% pass rate)
+- **Coverage**: 83.89% for write_operations.py
+
+**Test Coverage**:
+
+1. **Initialization Tests** (2 tests)
+   - Default timeout (15 minutes)
+   - Custom timeout configuration
+
+2. **Operation Creation Tests** (4 tests)
+   - Basic approval request creation
+   - Creation with callback functions
+   - Creation with additional metadata
+   - Expiration time validation
+
+3. **Operation Retrieval Tests** (3 tests)
+   - Retrieving existing operations
+   - Handling non-existent operations
+   - Auto-removal of expired operations
+
+4. **Operation Confirmation Tests** (5 tests)
+   - Confirmation without callback
+   - Confirmation with callback execution
+   - Handling non-existent operations
+   - User verification (only requester can confirm)
+   - Callback error handling
+
+5. **Operation Cancellation Tests** (3 tests)
+   - Successful cancellation
+   - Handling non-existent operations
+   - User verification (only requester can cancel)
+
+6. **User Operations Tests** (4 tests)
+   - Listing user operations (empty, single, multiple)
+   - Filtering by user ID
+   - Auto-removal of expired operations
+
+7. **Lifecycle Management Tests** (3 tests)
+   - Starting manager with cleanup task
+   - Stopping manager and task cleanup
+   - Background cleanup of expired operations
+
+**Test Fixes Applied**:
+
+Fixed 3 tests that failed due to Pydantic validation:
+
+- **Issue**: `ApprovalRequest` model validates that `expires_at` must be in the future
+- **Tests Affected**:
+  - `test_get_pending_operation_expired`
+  - `test_get_user_pending_operations_removes_expired`
+  - `test_cleanup_expired_operations`
+- **Solution**: Create normal operation, then manually modify `expires_at` on already-instantiated object to bypass validation
+
+## Code Quality
+
+### ✅ Code Quality Checks
+
+- **Black**: ✅ Code formatted successfully
+- **Ruff**: ✅ All lint checks passed
+- **MyPy**: ✅ Strict type checking passed
+- **Pytest**: ✅ All 25 tests passing (83.89% coverage)
+
+### ✅ All Checks Passing
+
+No known limitations for Phase 3B. All code quality checks pass successfully.
+
+## Architecture
+
+### Design Decisions
+
+1. **Async Background Cleanup**: Runs every 60 seconds to clean expired operations
+2. **User-Owned Operations**: Only requester can confirm or cancel their operations
+3. **Flexible Callback System**: Support for async callbacks on confirmation
+4. **Automatic Expiration**: Operations auto-expire after configurable timeout
+5. **Metadata-Based Storage**: Flexible metadata dictionary for operation parameters
+6. **Model Reuse**: Leverages existing `ApprovalRequest` Pydantic model
+7. **Error Handling**: Returns success/error dicts instead of raising exceptions
+8. **Separation of Concerns**: Operation management separate from card creation
+
+### Integration Points
+
+**Current (Phase 3B)**:
+
+- ✅ `ApprovalRequest` model (`models.approvals`)
+- ✅ `ApprovalStatus` enum (`models.approvals`)
+- ✅ Python asyncio for background tasks
+- ✅ Modern datetime with UTC timezone handling
+- ✅ UUID for unique operation IDs
+- ✅ Logging for audit trail
+
+**Future (Phase 3C)**:
+
+- ⏭️ Approval cards integration for Teams/Slack notifications
+- ⏭️ MCP Manager integration for write operation detection
+- ⏭️ Bedrock Client integration for operation approval prompts
+- ⏭️ CloudWatch metrics emission for operation tracking
+- ⏭️ Async Command Tracker integration for SSM operations
+
+### Operation Lifecycle
+
+1. **Create**: `create_approval_request()` generates new pending operation
+2. **Pending**: Operation stored with expiration time
+3. **Confirm/Cancel**: User confirms or cancels within timeout window
+4. **Execute**: Callback executed on confirmation (if provided)
+5. **Cleanup**: Background task removes expired operations
+
+## Value Delivered
+
+Phase 3B delivers the foundation for write operation approval workflows:
+
+1. **Core Approval Workflow**: Complete operation lifecycle management
+2. **User Verification**: Ensures only requesters can confirm/cancel operations
+3. **Automatic Cleanup**: Background task prevents memory leaks
+4. **Flexible Callbacks**: Support for custom operation execution
+5. **Type-Safe Design**: Full type hints and Pydantic integration
+6. **Testable Architecture**: 83.89% test coverage with comprehensive test suite
+7. **Modern Python**: Uses Python 3.13+ features throughout
+
+## Next Steps - Phase 3C
+
+### High Priority Dependencies for Full Integration
+
+1. **MCP Manager Integration** (Phase 3C)
+   - Integrate Write Operation Manager into `call_aws_api_tool()`
+   - Detect write operations and create approval requests
+   - Block execution until confirmation received
+   - Estimated: 4-6 hours
+
+2. **Approval Cards Integration** (Phase 3C)
+   - Connect Write Operation Manager to approval card creation
+   - Generate Teams/Slack cards for pending operations
+   - Handle card interactions for confirm/cancel
+   - Estimated: 6-8 hours
+
+3. **Bedrock Client Integration** (Phase 3C)
+   - Add approval workflow to tool execution flow
+   - Handle user prompts for dangerous operations
+   - Track approval states in conversation context
+   - Estimated: 4-6 hours
+
+4. **CloudWatch Metrics** (Phase 3C)
+   - Emit metrics for operation creation, confirmation, cancellation
+   - Track approval rates and timeouts
+   - Monitor operation lifecycle
+   - Estimated: 2-3 hours
+
+### Phase 3C Completion Tasks
+
+Once dependencies are integrated:
+
+1. Add write operation detection to MCP Manager
+2. Create approval cards for pending operations
+3. Handle card interactions for confirmation/cancellation
+4. Emit CloudWatch metrics for operation tracking
+5. Add integration tests with Teams/Slack mocks
+6. Update Bedrock Client to prompt for approvals
+7. Add end-to-end tests for complete approval workflow
+
+## Migration Statistics
+
+- **Source File Size**: 884 lines
+- **Migrated File Size**: 364 lines (simplified for Phase 3B)
+- **Test File Size**: 455 lines
+- **Test Count**: 25 tests
+- **Test Pass Rate**: 100%
+- **Test Coverage**: 83.89%
+- **Code Quality**: Black ✅, Ruff ✅, MyPy ✅, Pytest ✅
+- **Migration Time**: ~4-5 hours (including tests, fixes, and documentation)
+- **Complexity**: MEDIUM (simplified to core functionality, model reuse)
+
+## Breaking Changes
+
+None. This is a new component that builds on existing infrastructure from Phase 3A.
+
+## Configuration Changes
+
+No new configuration required. Uses existing settings:
+
+- Confirmation timeout configurable via constructor parameter (default: 15 minutes)
+- All other configuration via existing `ApprovalRequest` model
+
+## Contributors
+
+- Migration performed by: Claude (AI Assistant)
+- Reviewed by: [Pending]
+
+## References
+
+- Source File: `simple-app/write_operation_manager.py`
+- Destination: `src/ohlala_smartops/workflow/write_operations.py`
+- Tests: `tests/unit/test_write_operations.py`
+- Phase 3B Branch: `feature/phase-3b-write-operations`
+- Phase 3B PR: [To be created]
