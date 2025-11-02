@@ -254,6 +254,24 @@ creative and varied responses.
 BEDROCK_ANTHROPIC_VERSION: Final[str] = "bedrock-2023-05-31"
 """Anthropic API version for Bedrock integration."""
 
+# =============================================================================
+# Model Context Protocol (MCP) Configuration
+# =============================================================================
+
+DEFAULT_MCP_AWS_API_URL: Final[str] = "http://localhost:8000"
+"""Default URL for AWS API MCP server.
+
+This server provides AWS operations (EC2, SSM, etc.) via MCP protocol.
+Can be overridden via MCP_AWS_API_URL environment variable.
+"""
+
+DEFAULT_MCP_AWS_KNOWLEDGE_URL: Final[str] = "http://localhost:8001"
+"""Default URL for AWS Knowledge MCP server.
+
+This server provides AWS documentation and knowledge queries via MCP protocol.
+Can be overridden via MCP_AWS_KNOWLEDGE_URL environment variable.
+"""
+
 
 def get_bedrock_model_for_region(aws_region: str) -> str:
     """Get the optimal Claude Sonnet 4.5 model ID for an AWS region.
