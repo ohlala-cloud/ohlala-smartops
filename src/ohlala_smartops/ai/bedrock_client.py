@@ -31,7 +31,7 @@ import json
 import logging
 from typing import Any, Final
 
-import aioboto3  # type: ignore[import-untyped]
+import aioboto3
 from botocore.exceptions import ClientError
 
 from ohlala_smartops.ai.model_selector import ModelSelector
@@ -87,7 +87,7 @@ class BedrockClient:
 
     def __init__(
         self,
-        mcp_manager: Any | None = None,  # type: ignore[misc]
+        mcp_manager: Any | None = None,
         audit_logger: AuditLogger | None = None,
         throttler: BedrockThrottler | None = None,
         token_tracker: TokenTracker | None = None,
@@ -206,7 +206,7 @@ class BedrockClient:
 
         # Invoke model with fallback
         try:
-            async with self.throttler:
+            async with self.throttler.throttled_bedrock_request("call_bedrock"):
                 response_body = await self._invoke_model_with_fallback(request)
 
             # Extract usage statistics
@@ -294,7 +294,7 @@ class BedrockClient:
                         )
 
                     # Read response body
-                    response_body = json.loads(await response["body"].read())
+                    response_body: dict[str, Any] = json.loads(await response["body"].read())
 
                     # Check for guardrail intervention
                     if response_body.get("stop_reason") == "guardrail_intervened":

@@ -40,9 +40,12 @@ def mock_settings():
 def mock_throttler():
     """Mock Bedrock throttler."""
     with patch("ohlala_smartops.ai.bedrock_client.BedrockThrottler") as mock:
-        throttler = AsyncMock()
-        throttler.__aenter__ = AsyncMock(return_value=throttler)
-        throttler.__aexit__ = AsyncMock(return_value=None)
+        throttler = Mock()
+        # Mock the throttled_bedrock_request method to return an async context manager
+        async_ctx = AsyncMock()
+        async_ctx.__aenter__ = AsyncMock(return_value=None)
+        async_ctx.__aexit__ = AsyncMock(return_value=None)
+        throttler.throttled_bedrock_request = Mock(return_value=async_ctx)
         mock.return_value = throttler
         yield throttler
 
