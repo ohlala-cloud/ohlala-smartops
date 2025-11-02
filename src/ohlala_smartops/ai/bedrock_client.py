@@ -119,7 +119,7 @@ class BedrockClient:
         self,
         prompt: str,
         user_id: str | None = None,
-        conversation_state: Any | None = None,  # noqa: ARG002 - Phase 3: will be ConversationStateManager
+        conversation_state: (Any | None) = None,  # noqa: ARG002 - Phase 3
         allowed_tools: list[str] | None = None,  # noqa: ARG002 - Phase 3: MCP integration
         max_tokens: int | None = None,
         temperature: float | None = None,
