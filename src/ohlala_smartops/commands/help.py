@@ -233,6 +233,38 @@ class HelpCommand(BaseCommand):
                 {
                     "type": "Container",
                     "separator": True,
+                    "spacing": "Medium",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": "**Resource Tagging**",
+                            "color": "Accent",
+                            "weight": "Bolder",
+                            "spacing": "Small",
+                        },
+                        {
+                            "type": "FactSet",
+                            "facts": [
+                                {
+                                    "title": "/tag",
+                                    "value": "Add or update tags on instances "
+                                    "(requires confirmation)",
+                                },
+                                {
+                                    "title": "/untag",
+                                    "value": "Remove tags from instances (requires confirmation)",
+                                },
+                                {
+                                    "title": "/find-tags",
+                                    "value": "Search instances by tag criteria",
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "type": "Container",
+                    "separator": True,
                     "spacing": "Large",
                     "items": [
                         {
@@ -435,6 +467,66 @@ class HelpCommand(BaseCommand):
                 "examples": [
                     "/commands",
                     "/commands i-1234567890abcdef0",
+                ],
+            },
+            "tag": {
+                "title": "Tag Instances Command",
+                "description": "Add or update tags on EC2 instances",
+                "usage": [
+                    "/tag <instance-id> <key=value> [key=value...] - Add/update tags",
+                    "/tag <id1>,<id2> <key=value> - Tag multiple instances",
+                ],
+                "details": (
+                    "Adds or updates tags on EC2 instances. Requires user confirmation "
+                    "before execution. Tags are specified in key=value format. Tag keys "
+                    "must be 1-128 characters and cannot start with 'aws:'. Tag values "
+                    "can be 0-256 characters. Maximum 50 tags per resource. Shows current "
+                    "tags for comparison before applying changes."
+                ),
+                "examples": [
+                    "/tag i-1234567890abcdef0 Environment=Production",
+                    "/tag i-1234567890abcdef0 Team=DevOps Owner=alice@example.com",
+                    "/tag i-123,i-456 Environment=Staging",
+                ],
+            },
+            "untag": {
+                "title": "Remove Tags Command",
+                "description": "Remove tags from EC2 instances",
+                "usage": [
+                    "/untag <instance-id> <tag-key> [tag-key...] - Remove tags by key",
+                    "/untag <id1>,<id2> <key> - Remove tags from multiple instances",
+                ],
+                "details": (
+                    "Removes tags from EC2 instances by tag key. Requires user "
+                    "confirmation before execution. Only tag keys are needed - values are "
+                    "not required. Cannot remove AWS system tags (keys starting with "
+                    "'aws:'). Shows which tags will be removed before applying changes "
+                    "for safety."
+                ),
+                "examples": [
+                    "/untag i-1234567890abcdef0 TempTag",
+                    "/untag i-1234567890abcdef0 OldTag1 OldTag2",
+                    "/untag i-123,i-456 Environment",
+                ],
+            },
+            "find-tags": {
+                "title": "Find by Tags Command",
+                "description": "Search for instances by tag criteria",
+                "usage": [
+                    "/find-tags <key=value> [key=value...] - Find instances with exact tags",
+                    "/find-tags <key> - Find instances with tag key (any value)",
+                ],
+                "details": (
+                    "Searches for EC2 instances matching specified tag filters. Supports "
+                    "searching by exact key=value pairs or by key only (matches any value). "
+                    "When multiple filters are specified, ALL filters must match (AND logic). "
+                    "Returns list of matching instances with their current state and details. "
+                    "This is a read-only operation that does not require confirmation."
+                ),
+                "examples": [
+                    "/find-tags Environment=Production",
+                    "/find-tags Environment=Production Team=DevOps",
+                    "/find-tags Owner",
                 ],
             },
         }
