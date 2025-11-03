@@ -27,6 +27,11 @@ from ohlala_smartops.models.cards import (
     InstanceActionCardData,
     MetricsCardData,
 )
+from ohlala_smartops.models.command_tracking import (
+    CommandTrackingInfo,
+    SSMCommandStatus,
+    WorkflowInfo,
+)
 from ohlala_smartops.models.conversation import (
     ChannelInfo,
     ConversationContext,
@@ -99,6 +104,7 @@ __all__ = [
     "CommandRequest",
     "CommandResponse",
     "CommandStatus",
+    "CommandTrackingInfo",
     "CommandType",
     "ConversationAccount",
     "ConversationContext",
@@ -114,9 +120,11 @@ __all__ = [
     "MetricsCardData",
     "NaturalLanguageRequest",
     "SSMCommandRequest",
+    "SSMCommandStatus",
     "SSMSessionRequest",
     "TeamInfo",
     "TeamsChannelData",
     "UserInfo",
     "UserRole",
+    "WorkflowInfo",
 ]
