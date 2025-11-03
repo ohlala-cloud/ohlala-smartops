@@ -503,3 +503,214 @@ class TestFindByTagsCommand:
         assert result["success"] is True
         assert result["tag_filters"]["Environment"] == "Production"
         assert result["tag_filters"]["Project"] is None
+
+    def test_parse_tag_filters_empty_key(self, command: FindByTagsCommand) -> None:
+        """Test parsing with empty key in key=value."""
+        result = command._parse_tag_filters(["=Value"])
+        assert result["success"] is False
+        assert "cannot be empty" in result["error"]
+
+    def test_parse_tag_filters_only_whitespace(self, command: FindByTagsCommand) -> None:
+        """Test parsing with only whitespace keys."""
+        result = command._parse_tag_filters(["  ", "\t"])
+        assert result["success"] is False
+        assert "No valid tag filters" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_execute_mcp_tool_failure(
+        self, command: FindByTagsCommand, mock_context: dict[str, Any]
+    ) -> None:
+        """Test execution when MCP tool call fails."""
+        mock_mcp = mock_context["mcp_manager"]
+        mock_mcp.call_aws_api_tool.side_effect = Exception("MCP call failed")
+
+        result = await command.execute(["Environment=Production"], mock_context)
+
+        assert result["success"] is False
+        assert "Failed to search instances" in result["error"]
+        assert "card" in result
+
+    @pytest.mark.asyncio
+    async def test_execute_general_exception(
+        self, command: FindByTagsCommand, mock_context: dict[str, Any]
+    ) -> None:
+        """Test general exception handling in execute."""
+        # Cause an exception by making _parse_tag_filters fail unexpectedly
+        with patch.object(
+            command, "_parse_tag_filters", side_effect=RuntimeError("Unexpected error")
+        ):
+            result = await command.execute(["Environment=Production"], mock_context)
+
+            assert result["success"] is False
+            assert "Failed to find instances" in result["error"]
+            assert "card" in result
+
+
+# Additional tests for TagCommand - Error paths and callbacks
+class TestTagCommandAdditional:
+    """Additional tests for TagCommand to improve coverage."""
+
+    @pytest.fixture
+    def command(self) -> TagCommand:
+        """Create command instance."""
+        return TagCommand()
+
+    @pytest.fixture
+    def mock_context(self) -> dict[str, Any]:
+        """Create mock context with user info."""
+        return {
+            "mcp_manager": AsyncMock(),
+            "user_id": "user-123",
+            "user_name": "Test User",
+        }
+
+    @pytest.mark.asyncio
+    async def test_parse_tag_args_with_whitespace_keys(self, command: TagCommand) -> None:
+        """Test parsing tags with whitespace-only keys are skipped."""
+        result = command._parse_tag_args(["i-1234567890abcdef0", "  ", "\t", "Valid=Value"])
+
+        assert result["success"] is True
+        assert len(result["tags"]) == 1
+        assert result["tags"]["Valid"] == "Value"
+
+    @pytest.mark.asyncio
+    async def test_execute_general_exception(
+        self, command: TagCommand, mock_context: dict[str, Any]
+    ) -> None:
+        """Test general exception handling in execute."""
+        with patch.object(command, "_parse_tag_args", side_effect=RuntimeError("Unexpected error")):
+            result = await command.execute(["i-123", "Environment=Production"], mock_context)
+
+            assert result["success"] is False
+            assert "Failed to tag instances" in result["error"]
+            assert "card" in result
+
+    def test_parse_tag_args_too_many_tags(self, command: TagCommand) -> None:
+        """Test parsing when more than 50 tags provided."""
+        # Create instance ID + 51 tags
+        args = ["i-1234567890abcdef0"] + [f"Tag{i}=Value{i}" for i in range(51)]
+        result = command._parse_tag_args(args)
+
+        assert result["success"] is False
+        assert "Too many tags" in result["error"]
+        assert "50" in result["error"]
+
+    def test_parse_tag_args_empty_key(self, command: TagCommand) -> None:
+        """Test parsing with empty tag key."""
+        result = command._parse_tag_args(["i-1234567890abcdef0", "=Value"])
+
+        assert result["success"] is False
+        assert "key cannot be empty" in result["error"]
+
+    def test_parse_tag_args_no_instance_ids(self, command: TagCommand) -> None:
+        """Test parsing with no instance IDs."""
+        # With less than 2 args
+        result = command._parse_tag_args(["Environment=Production"])
+
+        assert result["success"] is False
+        assert "both instance ID(s) and tag(s)" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_get_current_tags_exception(
+        self, command: TagCommand, mock_context: dict[str, Any]
+    ) -> None:
+        """Test _get_current_tags when MCP call fails."""
+        mock_mcp = mock_context["mcp_manager"]
+        mock_mcp.call_aws_api_tool.side_effect = Exception("MCP failed")
+
+        result = await command._get_current_tags(["i-123"], mock_context)
+
+        # Should return empty dict on error
+        assert result == {}
+
+    @pytest.mark.asyncio
+    async def test_get_current_tags_invalid_response(
+        self, command: TagCommand, mock_context: dict[str, Any]
+    ) -> None:
+        """Test _get_current_tags with invalid response format."""
+        mock_mcp = mock_context["mcp_manager"]
+        mock_mcp.call_aws_api_tool.return_value = {"tags": "not-a-dict"}
+
+        result = await command._get_current_tags(["i-123"], mock_context)
+
+        # Should return empty dict for invalid format
+        assert result == {}
+
+
+# Additional tests for UntagCommand - Error paths and callbacks
+class TestUntagCommandAdditional:
+    """Additional tests for UntagCommand to improve coverage."""
+
+    @pytest.fixture
+    def command(self) -> UntagCommand:
+        """Create command instance."""
+        return UntagCommand()
+
+    @pytest.fixture
+    def mock_context(self) -> dict[str, Any]:
+        """Create mock context with user info."""
+        return {
+            "mcp_manager": AsyncMock(),
+            "user_id": "user-123",
+            "user_name": "Test User",
+        }
+
+    @pytest.mark.asyncio
+    async def test_execute_general_exception(
+        self, command: UntagCommand, mock_context: dict[str, Any]
+    ) -> None:
+        """Test general exception handling in execute."""
+        with patch.object(
+            command, "_parse_untag_args", side_effect=RuntimeError("Unexpected error")
+        ):
+            result = await command.execute(["i-123", "TempTag"], mock_context)
+
+            assert result["success"] is False
+            assert "Failed to remove tags" in result["error"]
+            assert "card" in result
+
+    @pytest.mark.asyncio
+    async def test_execute_no_user_id(
+        self, command: UntagCommand, mock_context: dict[str, Any]
+    ) -> None:
+        """Test execute when user_id is missing."""
+        mock_context["user_id"] = None
+
+        result = await command.execute(["i-123", "TempTag"], mock_context)
+
+        assert result["success"] is False
+        assert "Unable to identify user" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_execute_invalid_instance(
+        self, command: UntagCommand, mock_context: dict[str, Any]
+    ) -> None:
+        """Test execute with invalid instance ID."""
+        mock_mcp = mock_context["mcp_manager"]
+        mock_mcp.call_aws_api_tool.return_value = {"instances": []}
+
+        result = await command.execute(["i-1234567890abcdef0", "TempTag"], mock_context)
+
+        assert result["success"] is False
+        # Instance validation will fail if instance not found
+        assert "No instances found" in result["message"]
+
+    def test_parse_untag_args_no_instance_ids(self, command: UntagCommand) -> None:
+        """Test parsing with no valid instance IDs."""
+        result = command._parse_untag_args(["TempTag", "OldTag"])
+
+        assert result["success"] is False
+        assert "No valid instance IDs found" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_get_current_tags_exception(
+        self, command: UntagCommand, mock_context: dict[str, Any]
+    ) -> None:
+        """Test _get_current_tags when MCP call fails."""
+        mock_mcp = mock_context["mcp_manager"]
+        mock_mcp.call_aws_api_tool.side_effect = Exception("MCP failed")
+
+        result = await command._get_current_tags(["i-123"], mock_context)
+
+        # Should return empty dict on error
+        assert result == {}
