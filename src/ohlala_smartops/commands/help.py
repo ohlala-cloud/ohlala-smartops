@@ -139,6 +139,72 @@ class HelpCommand(BaseCommand):
                 {
                     "type": "Container",
                     "separator": True,
+                    "spacing": "Medium",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": "**Instance Management**",
+                            "color": "Accent",
+                            "weight": "Bolder",
+                            "spacing": "Small",
+                        },
+                        {
+                            "type": "FactSet",
+                            "facts": [
+                                {
+                                    "title": "/list",
+                                    "value": "List all EC2 instances",
+                                },
+                                {
+                                    "title": "/start",
+                                    "value": "Start stopped instances (requires confirmation)",
+                                },
+                                {
+                                    "title": "/stop",
+                                    "value": "Stop running instances (requires confirmation)",
+                                },
+                                {
+                                    "title": "/reboot",
+                                    "value": "Reboot running instances (requires confirmation)",
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "type": "Container",
+                    "separator": True,
+                    "spacing": "Medium",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": "**Monitoring & Information**",
+                            "color": "Accent",
+                            "weight": "Bolder",
+                            "spacing": "Small",
+                        },
+                        {
+                            "type": "FactSet",
+                            "facts": [
+                                {
+                                    "title": "/details",
+                                    "value": "Show detailed instance information",
+                                },
+                                {
+                                    "title": "/metrics",
+                                    "value": "Display CloudWatch metrics",
+                                },
+                                {
+                                    "title": "/costs",
+                                    "value": "Show cost information from Cost Explorer",
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "type": "Container",
+                    "separator": True,
                     "spacing": "Large",
                     "items": [
                         {
@@ -228,6 +294,85 @@ class HelpCommand(BaseCommand):
                 "history. Useful for checking the status of long-running "
                 "operations like SSM commands.",
                 "examples": ["/status"],
+            },
+            "list": {
+                "title": "List Instances Command",
+                "description": "List all EC2 instances with status and details",
+                "usage": ["/list - Show all EC2 instances"],
+                "details": "Displays a comprehensive list of all EC2 instances in your account, "
+                "including instance ID, name, type, state, and IP addresses. Instances are "
+                "sorted by state (running first) and then by name.",
+                "examples": ["/list"],
+            },
+            "start": {
+                "title": "Start Instances Command",
+                "description": "Start stopped EC2 instances",
+                "usage": ["/start <instance-id> [instance-id ...] - Start EC2 instances"],
+                "details": "Starts one or more stopped EC2 instances. Requires user confirmation "
+                "before execution. Only works on instances in 'stopped' state. Supports "
+                "multiple instance IDs (space or comma-separated).",
+                "examples": ["/start i-1234567890abcdef0", "/start i-abc123 i-def456"],
+            },
+            "stop": {
+                "title": "Stop Instances Command",
+                "description": "Stop running EC2 instances",
+                "usage": ["/stop <instance-id> [instance-id ...] - Stop EC2 instances"],
+                "details": "Stops one or more running EC2 instances. Requires user confirmation "
+                "with warning about service interruption. Only works on instances in 'running' "
+                "state. Supports multiple instance IDs (space or comma-separated).",
+                "examples": ["/stop i-1234567890abcdef0", "/stop i-abc123 i-def456"],
+            },
+            "reboot": {
+                "title": "Reboot Instances Command",
+                "description": "Reboot running EC2 instances",
+                "usage": ["/reboot <instance-id> [instance-id ...] - Reboot EC2 instances"],
+                "details": "Reboots one or more running EC2 instances. Requires user confirmation "
+                "with warning about temporary connection interruption. Only works on instances in "
+                "'running' state. Supports multiple instance IDs (space or comma-separated).",
+                "examples": ["/reboot i-1234567890abcdef0", "/reboot i-abc123 i-def456"],
+            },
+            "details": {
+                "title": "Instance Details Command",
+                "description": "Show detailed information about a specific EC2 instance",
+                "usage": ["/details <instance-id> - Show detailed instance information"],
+                "details": "Displays comprehensive information about a specific EC2 instance, "
+                "including instance details, recent CloudWatch metrics (last hour), active SSM "
+                "sessions, and recent SSM commands. Provides quick action buttons based on "
+                "current instance state.",
+                "examples": ["/details i-1234567890abcdef0"],
+            },
+            "metrics": {
+                "title": "Metrics Command",
+                "description": "Display CloudWatch metrics for an EC2 instance",
+                "usage": [
+                    "/metrics <instance-id> [duration] - Show metrics",
+                    "Duration options: 1h (default), 6h, 24h, 7d",
+                ],
+                "details": "Shows CloudWatch metrics for an instance over a specified time period. "
+                "Displays CPU utilization, network in/out, and disk read/write metrics with "
+                "min/max/average statistics. Metrics are shown for the last hour by default.",
+                "examples": [
+                    "/metrics i-1234567890abcdef0",
+                    "/metrics i-1234567890abcdef0 6h",
+                    "/metrics i-1234567890abcdef0 24h",
+                ],
+            },
+            "costs": {
+                "title": "Costs Command",
+                "description": "Display cost information from AWS Cost Explorer",
+                "usage": [
+                    "/costs [instance-id|all] [period] - Show costs",
+                    "Periods: today, week, month (default: month)",
+                ],
+                "details": "Shows cost data from AWS Cost Explorer for EC2 instances. Can show "
+                "costs for a specific instance or all instances. Includes cost breakdown by day "
+                "and forecast (if enabled). Note: Cost Explorer data has a 24-48 hour delay.",
+                "examples": [
+                    "/costs",
+                    "/costs all month",
+                    "/costs i-1234567890abcdef0 week",
+                    "/costs all today",
+                ],
             },
         }
 
