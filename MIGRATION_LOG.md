@@ -1451,3 +1451,382 @@ No new configuration required. Uses existing settings:
 - Tests: `tests/unit/test_write_operations.py`
 - Phase 3B Branch: `feature/phase-3b-write-operations`
 - Phase 3B PR: [To be created]
+
+---
+
+# Phase 3C: Async Command Tracker (Core Functionality)
+
+**Migration Date**: 2025-11-03
+**Branch**: `feature/phase-3c-async-command-tracker`
+**Status**: ✅ Completed
+
+## Migration Summary
+
+### ✅ Components Migrated
+
+#### 1. Command Tracking Models (`src/ohlala_smartops/models/command_tracking.py`)
+
+- **Source**: `simple-app/async_command_tracker.py` (dataclass definitions, ~150 lines)
+- **Destination**: `src/ohlala_smartops/models/command_tracking.py` (250 lines)
+- **Status**: ✅ Migrated and Modernized
+
+**Changes Made**:
+
+- **Converted to Pydantic Models**: Replaced dataclasses with Pydantic `BaseModel`
+  - Type validation on model creation
+  - Automatic serialization/deserialization
+  - Field validation with `Field` and validators
+  - Better IDE support and documentation
+
+- **SSMCommandStatus Enum**: Created dedicated enum for AWS SSM command states
+  - 11 status values mapping to AWS SSM API states
+  - Renamed from `CommandStatus` to `SSMCommandStatus` to avoid conflict
+  - String enum for easy serialization
+
+- **CommandTrackingInfo Model**: Individual command tracking with full lifecycle
+  - Command ID, instance ID, workflow ID
+  - Status tracking with timestamps (started, polled, completed)
+  - Exponential backoff polling (3s → 10s max with 1.2x multiplier)
+  - Timeout handling (default 15 minutes, configurable)
+  - Parameter sanitization (redacts passwords, secrets, tokens, keys)
+  - Terminal state detection
+  - EC2 instance ID validation (pattern matching)
+
+- **WorkflowInfo Model**: Multi-instance workflow coordination
+  - Workflow ID, operation type, expected command count
+  - Success/failure tracking across multiple commands
+  - Completion detection
+  - Success rate calculation
+  - Started/completed timestamps
+
+**Modern Python 3.13+ Features**:
+
+- Modern type hints (`dict[str, Any]`, `str | None`)
+- `Field` for Pydantic field configuration with validation
+- `field_validator` for custom validation logic
+- Comprehensive docstrings with examples
+- `datetime.now(UTC)` instead of deprecated `utcnow()`
+
+**Exports**: Added to `src/ohlala_smartops/models/__init__.py`
+
+#### 2. Async Command Tracker (`src/ohlala_smartops/workflow/command_tracker.py`)
+
+- **Source**: `simple-app/async_command_tracker.py` (1,112 lines)
+- **Destination**: `src/ohlala_smartops/workflow/command_tracker.py` (450 lines)
+- **Status**: ✅ Migrated (Simplified for Phase 3C)
+
+**What Was Migrated**:
+
+1. **Core AsyncCommandTracker Class** with essential methods:
+   - `start()` - Start background polling task
+   - `stop()` - Stop background polling task
+   - `track_command()` - Track a new SSM command with optional workflow
+   - `create_workflow()` - Create multi-instance workflow for coordination
+   - `get_command_status()` - Get current status of tracked command
+   - `get_workflow_status()` - Get current status of workflow
+   - `get_active_command_count()` - Get number of tracked commands
+   - `get_active_workflow_count()` - Get number of active workflows
+   - `_polling_loop()` - Main polling loop checking command status
+   - `_should_poll()` - Determine if command should be polled now
+   - `_poll_command()` - Poll SSM for command status via MCP Manager
+   - `_handle_completion()` - Handle command and workflow completion
+
+2. **CommandCompletionCallback Protocol**: Decoupled notification mechanism
+   - `on_command_completed()` - Called when individual command completes
+   - `on_workflow_completed()` - Called when entire workflow completes
+   - Protocol pattern allows any notification system (Teams, CLI, etc.)
+   - No direct Bot Framework dependencies
+
+3. **Integration Points**:
+   - ✅ `MCPManager` - Calls `get-command-invocation` via MCP
+   - ✅ `CommandTrackingInfo` model - Pydantic command tracking
+   - ✅ `WorkflowInfo` model - Pydantic workflow coordination
+   - ✅ `SSMCommandStatus` enum - AWS SSM status states
+   - ✅ Python asyncio - Background polling task
+   - ✅ Logging - Comprehensive operation logging
+   - ⏭️ Teams/Slack notifications (Phase 4)
+   - ⏭️ LLM analysis of failures (Phase 4)
+   - ⏭️ Card creation for updates (Phase 4)
+
+**Simplifications Made**:
+
+1. **No Bot Framework Dependencies**: Removed all `botbuilder.core` dependencies
+   - Source used `MessageFactory` and `turn_context` for Teams notifications
+   - Replaced with Protocol pattern (`CommandCompletionCallback`)
+   - Enables CLI, Teams, Slack, or any notification system
+   - Reduced complexity from 1,112 to ~450 lines
+
+2. **No Card Creation**: Card generation deferred to Phase 4
+   - Source had extensive card creation for command updates
+   - Phase 3C focuses on core command tracking only
+   - Card integration will be added when needed
+
+3. **No LLM Analysis**: Bedrock analysis of failures deferred to Phase 4
+   - Source called Bedrock to analyze failed commands
+   - Not needed for core tracking functionality
+   - Can be added as enhancement later
+
+4. **No Global Manager**: Single tracker instance instead of global singleton
+   - Source had `GlobalCommandTrackerManager` with conversation memory
+   - Simplified to dependency injection pattern
+   - Easier to test and more flexible
+
+5. **Simplified Error Handling**: Basic error logging instead of complex retries
+   - Source had retry logic for InvocationDoesNotExist errors
+   - Phase 3C logs errors and backs off polling
+   - Sufficient for core functionality
+
+**Modern Python 3.13+ Features**:
+
+- Modern type hints (`dict[str, Any]`, `str | None`, `asyncio.Task[None] | None`)
+- Async/await patterns throughout
+- Context manager support (`contextlib.suppress`)
+- Protocol pattern for callbacks (decoupled notifications)
+- Comprehensive docstrings with examples
+- `Final` type annotations for logger
+- Dependency injection (MCPManager, callback)
+
+**Exports**: Added to `src/ohlala_smartops/workflow/__init__.py`
+
+### ✅ Tests Created
+
+#### Test File 1 (`tests/unit/test_command_tracker.py`)
+
+- **Lines**: 530 lines of comprehensive tests
+- **Test Classes**: 6 test classes
+- **Test Count**: 29 tests
+- **Status**: ✅ All passing (100% pass rate)
+- **Coverage**: 75% for command_tracker.py
+
+**Test Coverage**:
+
+1. **Initialization Tests** (2 tests)
+   - Initialization without callback
+   - Initialization with callback
+
+2. **Command Tracking Tests** (9 tests)
+   - Basic command tracking
+   - Tracking with parameters
+   - Tracking with workflow association
+   - Custom timeout configuration
+   - Getting command status (exists, not found)
+   - Getting active command count
+
+3. **Workflow Creation Tests** (4 tests)
+   - Creating workflows
+   - Getting workflow status (exists, not found)
+   - Getting active workflow count
+
+4. **Polling Logic Tests** (8 tests)
+   - Should poll first time
+   - Should poll after delay
+   - Should not poll too soon
+   - Polling successful command
+   - Polling in-progress command
+   - Polling failed command
+   - Timeout handling
+   - InvocationDoesNotExist error handling
+
+5. **Completion Handling Tests** (4 tests)
+   - Completion without callback
+   - Completion with callback
+   - Completion with workflow (partial, complete)
+   - Workflow with mixed success/failures
+
+6. **Lifecycle Management Tests** (4 tests)
+   - Starting tracker
+   - Stopping tracker
+   - Starting already running tracker
+   - Stopping not running tracker
+
+#### Test File 2 (`tests/unit/test_command_tracking_models.py`)
+
+- **Lines**: 540 lines of comprehensive tests
+- **Test Classes**: 3 test classes
+- **Test Count**: 34 tests
+- **Status**: ✅ All passing (100% pass rate)
+- **Coverage**: 100% for command_tracking.py models
+
+**Test Coverage**:
+
+1. **SSMCommandStatus Tests** (3 tests)
+   - All statuses defined
+   - String conversion
+   - Invalid status raises error
+
+2. **CommandTrackingInfo Tests** (18 tests)
+   - Basic creation
+   - Creation with parameters/workflow/timeout
+   - Parameter sanitization (redacts secrets)
+   - Terminal state detection (success, failed, cancelled, timeouts)
+   - Non-terminal state detection
+   - Timeout detection
+   - Status updates (basic, terminal, with error)
+   - Exponential backoff calculation
+   - Exponential backoff cap at 10s
+   - Validation (instance ID format, empty command ID)
+
+3. **WorkflowInfo Tests** (13 tests)
+   - Basic creation
+   - Completion detection (false, true)
+   - Recording completion (success, failure)
+   - Completion timestamp setting
+   - Success rate calculation (zero, 100%, 0%, mixed)
+   - Validation (expected count, empty workflow ID)
+
+## Code Quality
+
+### ✅ Code Quality Checks
+
+- **Black**: ✅ Code formatted successfully
+- **Ruff**: ✅ All lint checks passed (fixed 1 issue automatically)
+- **MyPy**: ✅ Strict type checking passed (added type:ignore for Pydantic model instantiation)
+- **Pytest**: ✅ All 63 tests passing (29 + 34)
+- **Full Test Suite**: ✅ All 951 tests passing (including all previous phases)
+
+### ✅ All Checks Passing
+
+No known limitations for Phase 3C. All code quality checks pass successfully.
+
+**Type:ignore Comments**: Added 2 type:ignore comments for Pydantic model instantiation:
+
+- `CommandTrackingInfo.create()` - Pydantic model has defaults, mypy doesn't understand
+- `WorkflowInfo()` - Pydantic model has defaults, mypy doesn't understand
+
+These are standard for Pydantic and don't indicate actual type safety issues.
+
+## Architecture
+
+### Design Decisions
+
+1. **Async Background Polling**: Continuous loop checking commands every second
+2. **Exponential Backoff**: 3s → 3.6s → 4.3s → ... → 10s max (1.2x multiplier)
+3. **Timeout Handling**: Default 15 minutes, configurable per command
+4. **Protocol Pattern**: `CommandCompletionCallback` for decoupled notifications
+5. **Workflow Coordination**: Track multi-instance operations with success rates
+6. **Pydantic Models**: Type-safe, validated data models
+7. **MCP Integration**: Uses MCP Manager for `get-command-invocation` calls
+8. **Separation of Concerns**: Core tracking separate from notifications/cards
+
+### Integration Points
+
+**Current (Phase 3C)**:
+
+- ✅ `MCPManager` (`mcp.manager`)
+- ✅ `CommandTrackingInfo`, `WorkflowInfo`, `SSMCommandStatus` (`models.command_tracking`)
+- ✅ Python asyncio for background polling
+- ✅ Modern datetime with UTC timezone handling
+- ✅ Logging for operation tracking
+
+**Future (Phase 4)**:
+
+- ⏭️ Teams/Slack notification system via `CommandCompletionCallback`
+- ⏭️ Bedrock Client for LLM analysis of failures
+- ⏭️ Approval cards for command status updates
+- ⏭️ CloudWatch metrics emission for tracking
+- ⏭️ Conversation state integration
+
+### Command Lifecycle
+
+1. **Track**: `track_command()` creates `CommandTrackingInfo`
+2. **Poll**: Background loop calls `_poll_command()` with exponential backoff
+3. **Update**: Status updated from `get-command-invocation` response
+4. **Complete**: Terminal state triggers `_handle_completion()`
+5. **Notify**: Optional callback called with results
+6. **Cleanup**: Completed commands removed from active tracking
+
+### Workflow Lifecycle
+
+1. **Create**: `create_workflow()` for multi-instance operations
+2. **Associate**: Commands tracked with `workflow_id`
+3. **Update**: Each command completion updates workflow counts
+4. **Complete**: Workflow complete when all commands finished
+5. **Notify**: Callback called with final workflow results
+6. **Cleanup**: Completed workflows removed from active tracking
+
+## Value Delivered
+
+Phase 3C delivers the foundation for SSM command monitoring:
+
+1. **Async Command Tracking**: Background polling with exponential backoff
+2. **Multi-Instance Workflows**: Coordinate operations across multiple instances
+3. **Type-Safe Models**: Pydantic validation and serialization
+4. **Decoupled Notifications**: Protocol pattern for any notification system
+5. **MCP Integration**: Leverages MCP Manager for AWS API calls
+6. **Comprehensive Testing**: 100% model coverage, 75% tracker coverage
+7. **Modern Python**: Uses Python 3.13+ features throughout
+
+## Next Steps - Phase 4
+
+### Integration with Existing Components
+
+1. **Bedrock Client Integration** (Phase 4A)
+   - Auto-track SSM commands initiated by Bedrock
+   - LLM analysis of failed commands
+   - Generate retry suggestions
+   - Estimated: 4-6 hours
+
+2. **Notification System** (Phase 4B)
+   - Implement `CommandCompletionCallback` for Teams/Slack
+   - Send command status updates
+   - Create adaptive cards for completion notifications
+   - Estimated: 6-8 hours
+
+3. **MCP Manager Integration** (Phase 4C)
+   - Auto-start tracking for `send-command` calls
+   - Create workflows for batch operations
+   - Return command IDs to user
+   - Estimated: 4-6 hours
+
+4. **CloudWatch Metrics** (Phase 4D)
+   - Emit metrics for command success/failure rates
+   - Track polling frequency and duration
+   - Monitor workflow completion times
+   - Estimated: 2-3 hours
+
+### Enhancement Opportunities
+
+1. **Persistent Storage**: Add database backend for command history
+2. **Command Cancellation**: Support for cancelling in-progress commands
+3. **Advanced Retry Logic**: Automatic retry for specific failure types
+4. **Real-time Updates**: WebSocket support for live status updates
+5. **Command Filtering**: Search and filter historical commands
+
+## Migration Statistics
+
+- **Source File Size**: 1,112 lines (AsyncCommandTracker class + dataclasses)
+- **Migrated File Size**: 700 lines total (250 models + 450 tracker)
+- **Test File Size**: 1,070 lines (530 + 540)
+- **Test Count**: 63 tests (29 + 34)
+- **Test Pass Rate**: 100%
+- **Test Coverage**: 100% models, 75% tracker (polling loop edge cases)
+- **Code Quality**: Black ✅, Ruff ✅, MyPy ✅, Pytest ✅
+- **Migration Time**: ~6-7 hours (models, tracker, tests, documentation)
+- **Complexity**: MEDIUM-HIGH (simplified from 1,112 to 700 lines)
+
+## Breaking Changes
+
+None. This is a new component that builds on existing infrastructure from Phase 3A/3B.
+
+## Configuration Changes
+
+No new configuration required. All settings built into models:
+
+- Command timeout configurable via `track_command()` parameter (default: 15 minutes)
+- Polling delay calculated automatically with exponential backoff (3s → 10s)
+- All timestamps use modern `datetime.now(UTC)`
+
+## Contributors
+
+- Migration performed by: Claude (AI Assistant)
+- Reviewed by: [Pending]
+
+## References
+
+- Source File: `simple-app/async_command_tracker.py`
+- Destination: `src/ohlala_smartops/models/command_tracking.py`
+- Destination: `src/ohlala_smartops/workflow/command_tracker.py`
+- Tests: `tests/unit/test_command_tracker.py`
+- Tests: `tests/unit/test_command_tracking_models.py`
+- Phase 3C Branch: `feature/phase-3c-async-command-tracker`
+- Phase 3C PR: [To be created]
