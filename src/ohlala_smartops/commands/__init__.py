@@ -6,11 +6,14 @@ specific functionality like help, status checks, and EC2 operations.
 Phase 5A: Initial commands (base, help, status).
 Phase 5B: Instance management commands (list, start, stop, reboot).
 Phase 5C: Monitoring & information commands (details, metrics, costs).
+Phase 5D: SSM command execution (exec, commands).
 Future phases will add advanced operations.
 """
 
 from ohlala_smartops.commands.base import BaseCommand
+from ohlala_smartops.commands.commands_list import CommandsListCommand
 from ohlala_smartops.commands.costs import CostsCommand
+from ohlala_smartops.commands.exec import ExecCommand
 from ohlala_smartops.commands.help import HelpCommand
 from ohlala_smartops.commands.instance_details import InstanceDetailsCommand
 from ohlala_smartops.commands.list_instances import ListInstancesCommand
@@ -22,7 +25,9 @@ from ohlala_smartops.commands.stop import StopInstanceCommand
 
 __all__ = [
     "BaseCommand",
+    "CommandsListCommand",
     "CostsCommand",
+    "ExecCommand",
     "HelpCommand",
     "InstanceDetailsCommand",
     "ListInstancesCommand",
