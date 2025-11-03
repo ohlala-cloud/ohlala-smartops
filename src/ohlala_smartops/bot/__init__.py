@@ -19,6 +19,7 @@ from ohlala_smartops.bot.state import (
     StateStorage,
     create_state_manager,
 )
+from ohlala_smartops.bot.teams_bot import OhlalaBot
 
 __all__ = [
     # State management
@@ -27,6 +28,8 @@ __all__ = [
     "OhlalaActivityHandler",
     # Bot Framework components
     "OhlalaAdapter",
+    # Bot orchestrator
+    "OhlalaBot",
     "StateStorage",
     # FastAPI app
     "app",
