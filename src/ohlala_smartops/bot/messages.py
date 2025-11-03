@@ -12,8 +12,7 @@ from typing import Any, cast
 from fastapi import APIRouter, Header, HTTPException, Request, Response, status
 
 from ohlala_smartops.bot.adapter import create_adapter
-from ohlala_smartops.bot.handlers import OhlalaActivityHandler
-from ohlala_smartops.bot.state import create_state_manager
+from ohlala_smartops.bot.teams_bot import OhlalaBot
 from ohlala_smartops.config.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -26,18 +25,16 @@ router = APIRouter()
 # Use lazy initialization to avoid issues during testing
 _adapter: Any | None = None
 _handler: Any | None = None
-_state_manager: Any | None = None
 
 
 def _ensure_initialized() -> None:
     """Ensure bot services are initialized."""
-    global _adapter, _handler, _state_manager  # noqa: PLW0603
+    global _adapter, _handler  # noqa: PLW0603
     if _adapter is None:
         _adapter = create_adapter()
     if _handler is None:
-        _handler = OhlalaActivityHandler()
-    if _state_manager is None:
-        _state_manager = create_state_manager("memory")
+        # Use OhlalaBot which has command registration (Phase 6)
+        _handler = OhlalaBot()
 
 
 @router.post("/messages", status_code=status.HTTP_200_OK)
@@ -229,11 +226,11 @@ def get_adapter() -> Any:
     return _adapter
 
 
-def get_handler() -> OhlalaActivityHandler:
-    """Get the global activity handler instance.
+def get_handler() -> OhlalaBot:
+    """Get the global bot handler instance.
 
     Returns:
-        Activity handler.
+        Bot handler (OhlalaBot with all commands registered).
 
     Example:
         >>> handler = get_handler()
@@ -241,29 +238,29 @@ def get_handler() -> OhlalaActivityHandler:
     """
     _ensure_initialized()
     assert _handler is not None
-    return cast(OhlalaActivityHandler, _handler)
+    return cast(OhlalaBot, _handler)
 
 
 def get_state_manager() -> Any:
     """Get the global state manager instance.
 
     Returns:
-        Conversation state manager.
+        Conversation state manager from OhlalaBot.
 
     Example:
         >>> state_manager = get_state_manager()
         >>> state = await state_manager.get_state(conversation_id)
     """
     _ensure_initialized()
-    assert _state_manager is not None
-    return _state_manager
+    assert _handler is not None
+    return _handler.state_manager
 
 
 def initialize_bot_services(settings: Settings | None = None) -> None:
     """Initialize or reinitialize bot services.
 
-    This function allows updating the global adapter, handler, and state
-    manager instances with new settings or configuration.
+    This function allows updating the global adapter and handler
+    instances with new settings or configuration.
 
     Args:
         settings: Application settings. If None, loads from environment.
@@ -271,13 +268,13 @@ def initialize_bot_services(settings: Settings | None = None) -> None:
     Example:
         >>> initialize_bot_services(custom_settings)
     """
-    global _adapter, _handler, _state_manager  # noqa: PLW0603
+    global _adapter, _handler  # noqa: PLW0603
 
     _adapter = create_adapter(settings)
-    _handler = OhlalaActivityHandler()
-    _state_manager = create_state_manager("memory")
+    # Use OhlalaBot which has command registration (Phase 6)
+    _handler = OhlalaBot()
 
-    logger.info("Bot services initialized")
+    logger.info("Bot services initialized with commands registered")
 
 
 # Ensure services are initialized on module import (but lazily)

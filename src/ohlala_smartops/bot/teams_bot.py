@@ -19,6 +19,7 @@ from ohlala_smartops.bot.card_handler import CardHandler
 from ohlala_smartops.bot.message_handler import MessageHandler
 from ohlala_smartops.bot.state import ConversationStateManager, InMemoryStateStorage
 from ohlala_smartops.bot.typing_handler import TypingHandler
+from ohlala_smartops.commands.registry import register_commands
 from ohlala_smartops.mcp.manager import MCPManager
 from ohlala_smartops.workflow.command_tracker import AsyncCommandTracker
 from ohlala_smartops.workflow.write_operations import WriteOperationManager
@@ -92,7 +93,10 @@ class OhlalaBot(TeamsActivityHandler):  # type: ignore[misc]
         self.card_handler = CardHandler(write_op_manager=self.write_op_manager)
         self.typing_handler = TypingHandler()
 
-        logger.info("OhlalaBot initialized with all handlers")
+        # Register all commands with the message handler (Phase 6)
+        register_commands(self.message_handler)
+
+        logger.info("OhlalaBot initialized with all handlers and commands registered")
 
     # Core Teams activity handlers
 
