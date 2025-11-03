@@ -12,10 +12,10 @@ from ohlala_smartops.bot.app import create_app
 @pytest.fixture
 def client() -> TestClient:
     """Create a test client for the FastAPI app."""
-    # Mock the adapter creation to avoid Bot Framework initialization
+    # Mock the adapter and OhlalaBot creation to avoid Bot Framework initialization
     with (
         patch("ohlala_smartops.bot.messages.create_adapter", return_value=MagicMock()),
-        patch("ohlala_smartops.bot.messages.create_state_manager", return_value=MagicMock()),
+        patch("ohlala_smartops.bot.messages.OhlalaBot"),
     ):
         app = create_app()
         return TestClient(app)
