@@ -205,6 +205,34 @@ class HelpCommand(BaseCommand):
                 {
                     "type": "Container",
                     "separator": True,
+                    "spacing": "Medium",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": "**SSM Command Execution**",
+                            "color": "Accent",
+                            "weight": "Bolder",
+                            "spacing": "Small",
+                        },
+                        {
+                            "type": "FactSet",
+                            "facts": [
+                                {
+                                    "title": "/exec",
+                                    "value": "Execute commands on instances via SSM "
+                                    "(requires confirmation)",
+                                },
+                                {
+                                    "title": "/commands",
+                                    "value": "List and view SSM command history",
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "type": "Container",
+                    "separator": True,
                     "spacing": "Large",
                     "items": [
                         {
@@ -372,6 +400,41 @@ class HelpCommand(BaseCommand):
                     "/costs all month",
                     "/costs i-1234567890abcdef0 week",
                     "/costs all today",
+                ],
+            },
+            "exec": {
+                "title": "Execute Command",
+                "description": "Execute shell/PowerShell commands on EC2 instances via SSM",
+                "usage": [
+                    "/exec <instance-id> <command> - Execute command on instance",
+                    "/exec <id1>,<id2> <command> - Execute on multiple instances",
+                ],
+                "details": "Executes commands on EC2 instances using AWS Systems Manager. "
+                "Requires user confirmation before execution. The instance must be in 'running' "
+                "state and have SSM agent configured. Automatically selects the appropriate "
+                "document (Shell for Linux, PowerShell for Windows). Command execution is "
+                "asynchronous - use /commands to view status and output.",
+                "examples": [
+                    "/exec i-1234567890abcdef0 ls -la /var/log",
+                    "/exec i-1234567890abcdef0 systemctl status nginx",
+                    "/exec i-123,i-456 df -h",
+                ],
+            },
+            "commands": {
+                "title": "List SSM Commands",
+                "description": "List and view recent SSM command executions",
+                "usage": [
+                    "/commands - Show all recent SSM commands",
+                    "/commands <instance-id> - Show commands for specific instance",
+                ],
+                "details": "Displays recent SSM command executions with status, output, and "
+                "timing information. Shows the last 25 commands with color-coded status badges. "
+                "Use this command to check the status and results of commands executed via /exec. "
+                "Supports filtering by instance ID to see only commands executed on a "
+                "specific instance.",
+                "examples": [
+                    "/commands",
+                    "/commands i-1234567890abcdef0",
                 ],
             },
         }
