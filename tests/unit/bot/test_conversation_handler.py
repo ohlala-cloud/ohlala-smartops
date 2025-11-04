@@ -664,9 +664,7 @@ class TestResumeConversationFull:
     ):
         """Test resuming conversation with missing tool name or ID."""
         sample_conversation_state.messages = [{"role": "user", "content": "test"}]
-        sample_conversation_state.pending_tool_uses = [
-            {"name": "list-instances"}  # Missing ID
-        ]
+        sample_conversation_state.pending_tool_uses = [{"name": "list-instances"}]  # Missing ID
         sample_conversation_state.available_tools = ["list-instances"]
         mock_state_manager.get_state.return_value = sample_conversation_state
 
