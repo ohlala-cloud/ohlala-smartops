@@ -282,9 +282,9 @@ class BedrockClient:
             request = {
                 "anthropic_version": BEDROCK_ANTHROPIC_VERSION,
                 "max_tokens": max_tokens or self.settings.bedrock_max_tokens,
-                "temperature": temperature
-                if temperature is not None
-                else self.settings.bedrock_temperature,
+                "temperature": (
+                    temperature if temperature is not None else self.settings.bedrock_temperature
+                ),
                 "system": system_prompt,
                 "messages": messages,
             }

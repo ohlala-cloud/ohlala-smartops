@@ -495,9 +495,9 @@ class ConversationHandler:
                     tool_result_entry = {
                         "type": "tool_result",
                         "tool_use_id": tool_id,
-                        "content": json.dumps(tool_result)
-                        if tool_result
-                        else "Tool execution completed",
+                        "content": (
+                            json.dumps(tool_result) if tool_result else "Tool execution completed"
+                        ),
                     }
                     logger.info(
                         f"Adding tool result for {tool_id}: {str(tool_result_entry)[:200]}..."
