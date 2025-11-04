@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from ohlala_smartops.bot.conversation_handler import ConversationHandler
+from ohlala_smartops.models.approvals import ApprovalStatus
 from ohlala_smartops.models.conversation import ConversationState
 
 
@@ -763,10 +764,6 @@ class TestExecuteApprovedTool:
         sample_conversation_state,
     ):
         """Test executing an approved SSM command."""
-        from unittest.mock import Mock
-
-        from ohlala_smartops.models.approvals import ApprovalStatus
-
         # Mock the approval object
         approval = Mock()
         approval.status = ApprovalStatus.APPROVED
@@ -806,10 +803,6 @@ class TestExecuteApprovedTool:
         sample_conversation_state,
     ):
         """Test executing a rejected SSM command."""
-        from unittest.mock import Mock
-
-        from ohlala_smartops.models.approvals import ApprovalStatus
-
         # Mock the approval object
         approval = Mock()
         approval.status = ApprovalStatus.REJECTED
@@ -836,10 +829,6 @@ class TestExecuteApprovedTool:
         sample_conversation_state,
     ):
         """Test executing SSM command that still needs approval."""
-        from unittest.mock import Mock
-
-        from ohlala_smartops.models.approvals import ApprovalStatus
-
         # Mock the approval object
         approval = Mock()
         approval.status = ApprovalStatus.PENDING
