@@ -472,3 +472,125 @@ class TestToolAttemptTracking:
         assert count == 2
         count = bedrock_client._increment_tool_attempts("user1")
         assert count == 3
+
+
+class TestCallBedrockWithTools:
+    """Tests for call_bedrock_with_tools method."""
+
+    @pytest.mark.asyncio
+    async def test_call_with_tools_success(self, bedrock_client, mock_bedrock_response):
+        """Test successful call_bedrock_with_tools."""
+        with patch.object(bedrock_client, "_invoke_model_with_fallback") as mock_invoke:
+            mock_invoke.return_value = mock_bedrock_response
+
+            messages = [{"role": "user", "content": "List instances"}]
+            system_prompt = "You are an AWS assistant"
+            tools = [{"name": "list-instances", "description": "List EC2 instances"}]
+
+            response = await bedrock_client.call_bedrock_with_tools(
+                messages=messages, system_prompt=system_prompt, tools=tools
+            )
+
+            assert response == mock_bedrock_response
+            mock_invoke.assert_called_once()
+            # Verify tools were included in request
+            call_args = mock_invoke.call_args[0][0]
+            assert "tools" in call_args
+            assert call_args["tools"] == tools
+
+    @pytest.mark.asyncio
+    async def test_call_with_tools_no_tools(self, bedrock_client, mock_bedrock_response):
+        """Test call_bedrock_with_tools with empty tools list."""
+        with patch.object(bedrock_client, "_invoke_model_with_fallback") as mock_invoke:
+            mock_invoke.return_value = mock_bedrock_response
+
+            messages = [{"role": "user", "content": "Hello"}]
+            system_prompt = "Test prompt"
+            tools = []
+
+            response = await bedrock_client.call_bedrock_with_tools(
+                messages=messages, system_prompt=system_prompt, tools=tools
+            )
+
+            assert response == mock_bedrock_response
+            # Verify tools were not included when empty
+            call_args = mock_invoke.call_args[0][0]
+            assert "tools" not in call_args
+
+    @pytest.mark.asyncio
+    async def test_call_with_tools_custom_parameters(self, bedrock_client, mock_bedrock_response):
+        """Test call_bedrock_with_tools with custom max_tokens and temperature."""
+        with patch.object(bedrock_client, "_invoke_model_with_fallback") as mock_invoke:
+            mock_invoke.return_value = mock_bedrock_response
+
+            messages = [{"role": "user", "content": "Test"}]
+            system_prompt = "Test prompt"
+            tools = [{"name": "test-tool"}]
+
+            response = await bedrock_client.call_bedrock_with_tools(
+                messages=messages,
+                system_prompt=system_prompt,
+                tools=tools,
+                max_tokens=1000,
+                temperature=0.8,
+            )
+
+            assert response == mock_bedrock_response
+            call_args = mock_invoke.call_args[0][0]
+            assert call_args["max_tokens"] == 1000
+            assert call_args["temperature"] == 0.8
+
+    @pytest.mark.asyncio
+    async def test_call_with_tools_guardrail_error(self, bedrock_client):
+        """Test call_bedrock_with_tools handles guardrail errors."""
+        with patch.object(bedrock_client, "_invoke_model_with_fallback") as mock_invoke:
+            mock_invoke.side_effect = BedrockGuardrailError("Guardrail blocked")
+
+            messages = [{"role": "user", "content": "Test"}]
+            system_prompt = "Test prompt"
+            tools = []
+
+            with pytest.raises(BedrockGuardrailError):
+                await bedrock_client.call_bedrock_with_tools(
+                    messages=messages, system_prompt=system_prompt, tools=tools
+                )
+
+    @pytest.mark.asyncio
+    async def test_call_with_tools_generic_error(self, bedrock_client):
+        """Test call_bedrock_with_tools handles generic errors."""
+        with patch.object(bedrock_client, "_invoke_model_with_fallback") as mock_invoke:
+            mock_invoke.side_effect = Exception("Some error")
+
+            messages = [{"role": "user", "content": "Test"}]
+            system_prompt = "Test prompt"
+            tools = []
+
+            with pytest.raises(BedrockClientError) as exc_info:
+                await bedrock_client.call_bedrock_with_tools(
+                    messages=messages, system_prompt=system_prompt, tools=tools
+                )
+
+            assert "unexpected error" in str(exc_info.value).lower()
+
+    @pytest.mark.asyncio
+    async def test_call_with_tools_defaults_from_settings(
+        self, bedrock_client, mock_bedrock_response, mock_settings
+    ):
+        """Test that call_bedrock_with_tools uses default settings when parameters not provided."""
+        mock_settings.bedrock_max_tokens = 4096
+        mock_settings.bedrock_temperature = 1.0
+
+        with patch.object(bedrock_client, "_invoke_model_with_fallback") as mock_invoke:
+            mock_invoke.return_value = mock_bedrock_response
+
+            messages = [{"role": "user", "content": "Test"}]
+            system_prompt = "Test prompt"
+            tools = []
+
+            await bedrock_client.call_bedrock_with_tools(
+                messages=messages, system_prompt=system_prompt, tools=tools
+            )
+
+            call_args = mock_invoke.call_args[0][0]
+            assert call_args["max_tokens"] == 4096
+            assert call_args["temperature"] == 1.0

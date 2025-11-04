@@ -2096,3 +2096,204 @@ No new configuration required. All commands use existing settings from Phase 5.
 - Tests: `tests/integration/test_command_registration.py`
 - Phase 6 Branch: `feature/phase-6-command-registration`
 - Phase 6 PR: [To be created]
+
+---
+
+# Phase 7A: Conversation Handler Migration
+
+**Migration Date**: 2025-11-04
+**Branch**: `feat/conversation-handler-migration`
+**Status**: ✅ Completed (Awaiting PR)
+
+## Migration Summary
+
+Phase 7A migrates the conversation handler, which manages complex multi-turn conversations with Claude/Bedrock including tool use, approval workflows, and state resumption.
+
+### ✅ Components Migrated
+
+#### 1. Conversation State Models (`src/ohlala_smartops/models/conversation.py`)
+
+- **Source**: `simple-app/bot/conversation_handler.py` (state management logic)
+- **Destination**: Extended existing `ConversationState` model
+- **Status**: ✅ Extended and Enhanced
+
+**Changes Made**:
+
+- Extended `ConversationState` Pydantic model with new fields:
+  - `messages`: Claude conversation messages array
+  - `iteration`: Tool use iteration counter
+  - `available_tools`: List of available tool names
+  - `pending_tool_uses`: Tool uses awaiting approval
+  - `pending_tool_inputs`: Stored tool inputs (prevents Teams corruption)
+  - `original_prompt`: Original user prompt for context
+  - `instance_platforms`: Instance ID to platform mapping
+  - `handled_by_ssm_tracker`: Flag for SSM tracker integration
+- Added `store_conversation_for_resume()` method for state persistence
+- All fields have proper type hints and Pydantic validation
+
+#### 2. Conversation Handler (`src/ohlala_smartops/bot/conversation_handler.py`)
+
+- **Source**: `simple-app/bot/conversation_handler.py` (690 lines)
+- **Destination**: `src/ohlala_smartops/bot/conversation_handler.py` (758 lines)
+- **Status**: ✅ Migrated and Modernized
+
+**Changes Made**:
+
+- **Architecture Improvements**:
+  - Converted from bot instance access to dependency injection
+  - Uses `ConversationStateManager` for state persistence
+  - Integrated with existing `BedrockClient`, `MCPManager`, and `AsyncCommandTracker`
+  - Full async/await throughout (was partially async)
+  - Modern Python 3.13+ syntax (`dict[str, Any]` vs `Dict[str, Any]`)
+  - Comprehensive type hints with strict MyPy compliance
+
+- **Core Functionality**:
+  - `store_conversation_state()`: Persist conversation state for resumption
+  - `get_conversation_state()`: Retrieve conversation state
+  - `clear_conversation_state()`: Clean up conversation data
+  - `call_bedrock_with_tools()`: Multi-turn tool-enabled conversations
+  - `resume_conversation()`: Resume after approval workflow
+  - Multi-instance request validation
+  - Adaptive card extraction from responses
+
+- **Private Methods**:
+  - `_is_multi_instance_request()`: Detect "all instances" requests
+  - `_validate_multi_instance_tools()`: Ensure multi-instance coverage
+  - `_invoke_bedrock_model()`: Call Bedrock with tools
+  - `_process_tool_uses()`: Execute tool calls
+  - `_extract_final_response()`: Parse text/adaptive card responses
+  - `_execute_approved_tool()`: Execute approved SSM commands
+  - `_wait_for_sync_command_completion()`: Poll SSM command status
+  - `_handle_async_ssm_tracking()`: Setup async command tracking
+  - `_continue_claude_conversation()`: Continue multi-turn conversation
+
+- **Dependencies**:
+  - Integrated with `ApprovalRequest` model for approval workflows
+  - Uses `SSM_SYNC_TIMEOUT`, `SSM_POLL_INTERVAL`, `COMPLETION_STATUSES` constants
+  - Calls `preprocess_ssm_commands()` utility for command sanitization
+  - Uses `get_system_prompt()` for Claude system prompts
+
+#### 3. Bedrock Client Extension (`src/ohlala_smartops/ai/bedrock_client.py`)
+
+- **Source**: N/A (new method)
+- **Destination**: `src/ohlala_smartops/ai/bedrock_client.py`
+- **Status**: ✅ Enhanced
+
+**Changes Made**:
+
+- Added `call_bedrock_with_tools()` method for tool-enabled conversations
+- Accepts full control over messages, system prompt, and tools
+- Returns raw response body including content and tool_uses
+- Uses existing `_invoke_model_with_fallback()` for retry logic
+- Maintains compatibility with existing `call_bedrock()` method
+
+### ⏭️ Components Deferred
+
+#### Bot Integration
+
+- **Status**: ⏭️ To be completed in Phase 7B
+- **Reason**: Conversation handler is ready, but integration with Teams bot message flow requires additional wiring
+- **Next Steps**:
+  - Wire conversation handler into `bot/teams_bot.py`
+  - Update message handler to use conversation state
+  - Add approval card handlers
+  - Test end-to-end conversation flows
+
+#### Comprehensive Tests
+
+- **Status**: ⏭️ To be completed in Phase 7A-Tests
+- **Reason**: Tests will be added in follow-up to ensure 80%+ coverage
+- **Next Steps**:
+  - Unit tests for `ConversationHandler` methods
+  - Tests for multi-instance validation
+  - Tests for approval workflows
+  - Tests for state persistence/resumption
+  - Integration tests with mocked dependencies
+
+## Code Quality
+
+### Type Safety
+
+- ✅ **MyPy**: Strict mode, no errors
+- ✅ **Type Hints**: Complete coverage on all methods
+- ✅ **Pydantic**: All state models validated
+
+### Code Style
+
+- ✅ **Ruff**: All critical errors fixed
+- ⚠️ **E501**: Some lines >100 chars (cosmetic, non-blocking)
+- ✅ **Black**: Formatted (with line length exceptions)
+
+### Architecture
+
+- ✅ **Dependency Injection**: No global state access
+- ✅ **Separation of Concerns**: Clear method responsibilities
+- ✅ **Error Handling**: Comprehensive try/except blocks
+- ✅ **Logging**: Detailed logging throughout
+
+## Migration Statistics
+
+- **Files Created**: 1 (`conversation_handler.py`)
+- **Files Modified**: 2 (`conversation.py`, `bedrock_client.py`)
+- **Lines Added**: ~850 lines (758 handler + 92 models/bedrock)
+- **Test Count**: 0 (to be added in Phase 7A-Tests)
+- **Code Quality**: MyPy ✅, Ruff ✅ (critical issues)
+- **Migration Time**: ~6 hours (analysis, implementation, type checking)
+- **Complexity**: HIGH (complex state management and multi-turn logic)
+
+## Breaking Changes
+
+None. This is additive functionality that extends existing capabilities.
+
+## Configuration Changes
+
+No new configuration required. Uses existing settings from `config/settings.py`.
+
+## Value Delivered
+
+Phase 7A provides the foundation for complex multi-turn conversations:
+
+1. **State Persistence**: Conversations can be paused and resumed
+2. **Tool Use Support**: Claude can invoke AWS operations via tools
+3. **Approval Workflows**: Dangerous operations require user approval
+4. **Multi-Instance Intelligence**: Validates "all instances" requests
+5. **Type-Safe**: Full type hints and strict MyPy checking
+6. **Async Throughout**: Non-blocking I/O for better performance
+
+**Impact Metrics**:
+
+- **Before Phase 7A**: No multi-turn conversation support
+- **After Phase 7A**: Full conversation state management with tool use
+- **Architecture**: Dependency injection, Pydantic models, async/await
+- **Extensibility**: Ready for integration with Teams bot
+
+## Next Steps - Phase 7B
+
+### Bot Integration
+
+1. **Teams Bot Wiring**: Integrate conversation handler into message flow
+2. **Approval Cards**: Handle user approval/denial of operations
+3. **Error Handling**: User-friendly error messages for failures
+4. **Testing**: Comprehensive unit and integration tests (80%+ coverage)
+
+### Phase 7C - Deferred Components
+
+Components from the original analysis that were deferred to separate PRs:
+
+1. **Health Dashboard** (separate PR): Complex monitoring UI (~2,500 lines)
+2. **Rightsizing Recommendations** (separate PR): FinOps optimization (~6,000 lines)
+
+These are substantial features that deserve their own migration phases.
+
+## Contributors
+
+- Migration performed by: Claude (AI Assistant)
+- Reviewed by: [Pending]
+
+## References
+
+- New File: `src/ohlala_smartops/bot/conversation_handler.py`
+- Modified: `src/ohlala_smartops/models/conversation.py`
+- Modified: `src/ohlala_smartops/ai/bedrock_client.py`
+- Phase 7A Branch: `feat/conversation-handler-migration`
+- Phase 7A PR: [To be created]

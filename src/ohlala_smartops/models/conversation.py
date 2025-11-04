@@ -163,6 +163,14 @@ class ConversationState(BaseModel):
         last_message_id: ID of the last message in the conversation.
         turn_count: Number of turns in the conversation.
         history: Recent conversation history (for context).
+        messages: Claude conversation messages (for resume).
+        iteration: Current tool use iteration count.
+        available_tools: List of available tool names.
+        pending_tool_uses: Tool uses awaiting approval.
+        pending_tool_inputs: Stored tool inputs (to avoid Teams corruption).
+        original_prompt: Original user prompt for context.
+        instance_platforms: Mapping of instance IDs to platforms.
+        handled_by_ssm_tracker: Flag indicating SSM tracker is handling this conversation.
         created_at: Timestamp when the state was created.
         updated_at: Timestamp when the state was last updated.
     """
@@ -174,6 +182,25 @@ class ConversationState(BaseModel):
     turn_count: int = Field(0, ge=0, description="Number of conversation turns")
     history: list[dict[str, Any]] = Field(
         default_factory=list, description="Conversation history (max 10 turns)"
+    )
+    # Extended fields for conversation handler
+    messages: list[dict[str, Any]] = Field(
+        default_factory=list, description="Claude conversation messages"
+    )
+    iteration: int = Field(0, ge=0, description="Tool use iteration count")
+    available_tools: list[str] = Field(default_factory=list, description="Available tool names")
+    pending_tool_uses: list[dict[str, Any]] = Field(
+        default_factory=list, description="Tool uses awaiting approval"
+    )
+    pending_tool_inputs: dict[str, dict[str, Any]] = Field(
+        default_factory=dict, description="Stored tool inputs by tool ID"
+    )
+    original_prompt: str | None = Field(None, description="Original user prompt")
+    instance_platforms: dict[str, str] = Field(
+        default_factory=dict, description="Mapping of instance IDs to platforms"
+    )
+    handled_by_ssm_tracker: bool = Field(
+        False, description="Flag indicating SSM tracker is handling this"
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(tz=UTC), description="Creation timestamp"
@@ -204,4 +231,33 @@ class ConversationState(BaseModel):
         """Clear pending command and approval."""
         self.pending_command = None
         self.pending_approval_id = None
+        self.updated_at = datetime.now(tz=UTC)
+
+    def store_conversation_for_resume(
+        self,
+        messages: list[dict[str, Any]],
+        iteration: int,
+        available_tools: list[str],
+        pending_tool_uses: list[dict[str, Any]],
+        original_prompt: str | None = None,
+        instance_platforms: dict[str, str] | None = None,
+    ) -> None:
+        """Store conversation state for resuming after approval.
+
+        Args:
+            messages: Claude conversation messages.
+            iteration: Current tool use iteration count.
+            available_tools: List of available tool names.
+            pending_tool_uses: Tool uses awaiting approval.
+            original_prompt: Original user prompt for context.
+            instance_platforms: Mapping of instance IDs to platforms.
+        """
+        self.messages = messages.copy()
+        self.iteration = iteration
+        self.available_tools = available_tools
+        self.pending_tool_uses = pending_tool_uses
+        self.original_prompt = original_prompt or (
+            messages[0].get("content", "") if messages else ""
+        )
+        self.instance_platforms = instance_platforms or {}
         self.updated_at = datetime.now(tz=UTC)

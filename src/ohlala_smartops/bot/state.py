@@ -329,6 +329,9 @@ class ConversationStateManager:
                 pending_approval_id=None,
                 last_message_id=None,
                 turn_count=0,
+                iteration=0,
+                original_prompt=None,
+                handled_by_ssm_tracker=False,
             )
             await self.storage.set_state(state)
             logger.info(f"Created new state for conversation {conversation_id}")
