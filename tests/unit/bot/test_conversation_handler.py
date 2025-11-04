@@ -486,3 +486,472 @@ class TestConversationStateModel:
         )
 
         assert state.original_prompt == "inferred prompt"
+
+
+class TestCallBedrockWithTools:
+    """Test call_bedrock_with_tools method."""
+
+    @pytest.mark.asyncio
+    async def test_call_bedrock_with_tools_no_tool_uses(
+        self, conversation_handler, mock_bedrock_client
+    ):
+        """Test calling Bedrock with tools when no tool uses are returned."""
+        request = {
+            "messages": [{"role": "user", "content": "Hello"}],
+            "tools": [],
+            "system": "Test system prompt",
+        }
+
+        mock_bedrock_client.call_bedrock_with_tools.return_value = {
+            "content": [{"type": "text", "text": "Hello there"}],
+            "stop_reason": "end_turn",
+        }
+
+        result = await conversation_handler.call_bedrock_with_tools(request, None, 0)
+
+        assert result == "Hello there"
+        mock_bedrock_client.call_bedrock_with_tools.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_call_bedrock_with_tools_with_tool_use(
+        self, conversation_handler, mock_bedrock_client, mock_mcp_manager
+    ):
+        """Test calling Bedrock with tools when tool uses are returned."""
+        request = {
+            "messages": [{"role": "user", "content": "List instances"}],
+            "tools": [{"name": "list-instances"}],
+            "system": "Test system prompt",
+        }
+
+        # First response with tool use
+        mock_bedrock_client.call_bedrock_with_tools.side_effect = [
+            {
+                "content": [
+                    {"type": "tool_use", "id": "tool1", "name": "list-instances", "input": {}}
+                ],
+                "stop_reason": "tool_use",
+            },
+            # Second response after tool result
+            {
+                "content": [{"type": "text", "text": "Here are your instances"}],
+                "stop_reason": "end_turn",
+            },
+        ]
+
+        mock_mcp_manager.call_aws_api_tool.return_value = {"instances": []}
+
+        result = await conversation_handler.call_bedrock_with_tools(request, None, 0)
+
+        assert result == "Here are your instances"
+        assert mock_bedrock_client.call_bedrock_with_tools.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_call_bedrock_with_tools_max_iterations(
+        self, conversation_handler, mock_bedrock_client
+    ):
+        """Test max iterations limit is enforced."""
+        request = {
+            "messages": [{"role": "user", "content": "Hello"}],
+            "tools": [],
+            "system": "Test system prompt",
+        }
+
+        # Always return tool use to force hitting max iterations
+        mock_bedrock_client.call_bedrock_with_tools.return_value = {
+            "content": [{"type": "tool_use", "id": "tool1", "name": "list-instances", "input": {}}],
+            "stop_reason": "tool_use",
+        }
+
+        result = await conversation_handler.call_bedrock_with_tools(request, None, 0)
+
+        assert "reached the processing limit" in result
+
+    @pytest.mark.asyncio
+    async def test_call_bedrock_with_tools_validation_failure_retries(
+        self, conversation_handler, mock_bedrock_client, mock_mcp_manager
+    ):
+        """Test multi-instance validation failure triggers retry."""
+        request = {
+            "messages": [{"role": "user", "content": "Stop all instances"}],
+            "tools": [{"name": "send-command"}],
+            "system": "Test system prompt",
+        }
+
+        # First response with invalid single instance (should fail validation)
+        # Then corrected response
+        mock_bedrock_client.call_bedrock_with_tools.side_effect = [
+            {
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "tool1",
+                        "name": "send-command",
+                        "input": {"InstanceIds": ["i-123"]},
+                    }
+                ],
+                "stop_reason": "tool_use",
+            },
+            # After correction
+            {
+                "content": [{"type": "text", "text": "Commands sent to all instances"}],
+                "stop_reason": "end_turn",
+            },
+        ]
+
+        result = await conversation_handler.call_bedrock_with_tools(request, None, 0)
+
+        assert isinstance(result, str)
+        assert mock_bedrock_client.call_bedrock_with_tools.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_call_bedrock_with_tools_error_handling(
+        self, conversation_handler, mock_bedrock_client
+    ):
+        """Test error handling in call_bedrock_with_tools."""
+        request = {
+            "messages": [{"role": "user", "content": "Hello"}],
+            "tools": [],
+            "system": "Test system prompt",
+        }
+
+        mock_bedrock_client.call_bedrock_with_tools.side_effect = Exception("Bedrock error")
+
+        result = await conversation_handler.call_bedrock_with_tools(request, None, 0)
+
+        assert "error" in result.lower()
+        assert "Bedrock error" in result
+
+
+class TestResumeConversationFull:
+    """Test resume_conversation with full flow."""
+
+    @pytest.mark.asyncio
+    async def test_resume_conversation_with_tool_execution(
+        self,
+        conversation_handler,
+        mock_state_manager,
+        sample_conversation_state,
+        mock_mcp_manager,
+        mock_bedrock_client,
+    ):
+        """Test resuming conversation with tool execution."""
+        sample_conversation_state.messages = [{"role": "user", "content": "test"}]
+        sample_conversation_state.pending_tool_uses = [
+            {"id": "tool1", "name": "list-instances", "input": {}}
+        ]
+        sample_conversation_state.available_tools = ["list-instances"]
+        mock_state_manager.get_state.return_value = sample_conversation_state
+
+        mock_mcp_manager.call_aws_api_tool.return_value = {"instances": []}
+        mock_mcp_manager.get_tool_schema.return_value = {"name": "list-instances"}
+        mock_bedrock_client.call_bedrock_with_tools.return_value = {
+            "content": [{"type": "text", "text": "Here are your instances"}],
+            "stop_reason": "end_turn",
+        }
+
+        result = await conversation_handler.resume_conversation("user123", None)
+
+        assert result == "Here are your instances"
+        mock_mcp_manager.call_aws_api_tool.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_resume_conversation_with_missing_tool_info(
+        self,
+        conversation_handler,
+        mock_state_manager,
+        sample_conversation_state,
+        mock_bedrock_client,
+    ):
+        """Test resuming conversation with missing tool name or ID."""
+        sample_conversation_state.messages = [{"role": "user", "content": "test"}]
+        sample_conversation_state.pending_tool_uses = [
+            {"name": "list-instances"}  # Missing ID
+        ]
+        sample_conversation_state.available_tools = ["list-instances"]
+        mock_state_manager.get_state.return_value = sample_conversation_state
+
+        mock_bedrock_client.call_bedrock_with_tools.return_value = {
+            "content": [{"type": "text", "text": "Completed"}],
+            "stop_reason": "end_turn",
+        }
+
+        result = await conversation_handler.resume_conversation("user123", None)
+
+        assert isinstance(result, str)
+
+    @pytest.mark.asyncio
+    async def test_resume_conversation_tool_execution_error(
+        self,
+        conversation_handler,
+        mock_state_manager,
+        sample_conversation_state,
+        mock_mcp_manager,
+        mock_bedrock_client,
+    ):
+        """Test resuming conversation when tool execution fails."""
+        sample_conversation_state.messages = [{"role": "user", "content": "test"}]
+        sample_conversation_state.pending_tool_uses = [
+            {"id": "tool1", "name": "list-instances", "input": {}}
+        ]
+        sample_conversation_state.available_tools = ["list-instances"]
+        mock_state_manager.get_state.return_value = sample_conversation_state
+
+        mock_mcp_manager.call_aws_api_tool.side_effect = Exception("Tool error")
+        mock_mcp_manager.get_tool_schema.return_value = {"name": "list-instances"}
+        mock_bedrock_client.call_bedrock_with_tools.return_value = {
+            "content": [{"type": "text", "text": "Error handled"}],
+            "stop_reason": "end_turn",
+        }
+
+        result = await conversation_handler.resume_conversation("user123", None)
+
+        assert isinstance(result, str)
+
+    @pytest.mark.asyncio
+    async def test_resume_conversation_no_tool_results(
+        self,
+        conversation_handler,
+        mock_state_manager,
+        sample_conversation_state,
+        mock_bedrock_client,
+    ):
+        """Test resuming conversation when no tool results are generated."""
+        sample_conversation_state.messages = [{"role": "user", "content": "test"}]
+        sample_conversation_state.pending_tool_uses = [
+            {"id": "tool1"}  # Missing name - will be skipped
+        ]
+        sample_conversation_state.available_tools = []
+        mock_state_manager.get_state.return_value = sample_conversation_state
+
+        mock_bedrock_client.call_bedrock_with_tools.return_value = {
+            "content": [{"type": "text", "text": "Handled placeholder"}],
+            "stop_reason": "end_turn",
+        }
+
+        result = await conversation_handler.resume_conversation("user123", None)
+
+        assert isinstance(result, str)
+
+
+class TestExecuteApprovedTool:
+    """Test _execute_approved_tool method."""
+
+    @pytest.mark.asyncio
+    async def test_execute_non_ssm_tool(
+        self,
+        conversation_handler,
+        mock_mcp_manager,
+        sample_conversation_state,
+    ):
+        """Test executing a non-SSM tool."""
+        tool_result = await conversation_handler._execute_approved_tool(
+            tool_name="list-instances",
+            tool_input={},
+            tool_id="tool1",
+            user_id="user123",
+            turn_context=None,
+            state=sample_conversation_state,
+        )
+
+        assert tool_result is not None
+        mock_mcp_manager.call_aws_api_tool.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_execute_approved_ssm_command(
+        self,
+        conversation_handler,
+        mock_mcp_manager,
+        mock_state_manager,
+        sample_conversation_state,
+    ):
+        """Test executing an approved SSM command."""
+        from unittest.mock import Mock
+
+        from ohlala_smartops.models.approvals import ApprovalStatus
+
+        # Mock the approval object
+        approval = Mock()
+        approval.status = ApprovalStatus.APPROVED
+        mock_state_manager.get_approval.return_value = approval
+
+        # Mock different responses for different calls
+        async def mock_call_aws_api_tool(tool_name, tool_input, **kwargs):
+            if tool_name == "execute_ssm_sync":
+                return {
+                    "CommandId": "cmd-123",
+                    "Command": {"CommandId": "cmd-123"},
+                }
+            if tool_name == "get-command-invocation":
+                # Return completed status immediately to avoid wait loop
+                return {"Status": "Success", "CommandId": "cmd-123"}
+            return {}
+
+        mock_mcp_manager.call_aws_api_tool.side_effect = mock_call_aws_api_tool
+
+        tool_result = await conversation_handler._execute_approved_tool(
+            tool_name="execute_ssm_sync",
+            tool_input={"Commands": ["echo test"], "InstanceIds": ["i-123"]},
+            tool_id="tool1",
+            user_id="user123",
+            turn_context=None,
+            state=sample_conversation_state,
+        )
+
+        assert tool_result is not None
+        assert "CommandId" in tool_result
+
+    @pytest.mark.asyncio
+    async def test_execute_rejected_ssm_command(
+        self,
+        conversation_handler,
+        mock_state_manager,
+        sample_conversation_state,
+    ):
+        """Test executing a rejected SSM command."""
+        from unittest.mock import Mock
+
+        from ohlala_smartops.models.approvals import ApprovalStatus
+
+        # Mock the approval object
+        approval = Mock()
+        approval.status = ApprovalStatus.REJECTED
+        mock_state_manager.get_approval.return_value = approval
+
+        tool_result = await conversation_handler._execute_approved_tool(
+            tool_name="execute_ssm_sync",
+            tool_input={"Commands": ["echo test"]},
+            tool_id="tool1",
+            user_id="user123",
+            turn_context=None,
+            state=sample_conversation_state,
+        )
+
+        assert tool_result is not None
+        assert "denied" in tool_result
+        assert tool_result["denied"] is True
+
+    @pytest.mark.asyncio
+    async def test_execute_ssm_command_needs_approval(
+        self,
+        conversation_handler,
+        mock_state_manager,
+        sample_conversation_state,
+    ):
+        """Test executing SSM command that still needs approval."""
+        from unittest.mock import Mock
+
+        from ohlala_smartops.models.approvals import ApprovalStatus
+
+        # Mock the approval object
+        approval = Mock()
+        approval.status = ApprovalStatus.PENDING
+        mock_state_manager.get_approval.return_value = approval
+
+        tool_result = await conversation_handler._execute_approved_tool(
+            tool_name="execute_ssm_sync",
+            tool_input={"Commands": ["echo test"]},
+            tool_id="tool1",
+            user_id="user123",
+            turn_context=None,
+            state=sample_conversation_state,
+        )
+
+        assert tool_result is None
+
+
+class TestInvokeBedrockModel:
+    """Test _invoke_bedrock_model method."""
+
+    @pytest.mark.asyncio
+    async def test_invoke_bedrock_model_basic(self, conversation_handler, mock_bedrock_client):
+        """Test basic Bedrock model invocation."""
+        request = {
+            "messages": [{"role": "user", "content": "Hello"}],
+            "tools": [{"name": "list-instances"}],
+            "system": "Test prompt",
+        }
+
+        mock_bedrock_client.call_bedrock_with_tools.return_value = {
+            "content": [{"type": "text", "text": "Hello"}],
+            "stop_reason": "end_turn",
+        }
+
+        result = await conversation_handler._invoke_bedrock_model(request)
+
+        assert result is not None
+        assert "content" in result
+        mock_bedrock_client.call_bedrock_with_tools.assert_called_once()
+
+
+class TestProcessToolUsesExtended:
+    """Extended tests for _process_tool_uses method."""
+
+    @pytest.mark.asyncio
+    async def test_process_get_command_invocation_with_tracker(
+        self, conversation_handler, mock_command_tracker, mock_mcp_manager
+    ):
+        """Test processing get-command-invocation with command tracker."""
+        tool_uses = [
+            {
+                "id": "tool1",
+                "name": "get-command-invocation",
+                "input": {"command_id": "cmd-123"},
+            }
+        ]
+
+        mock_command_tracker.get_command_status.return_value = {
+            "Status": "Success",
+            "CommandId": "cmd-123",
+        }
+
+        results = await conversation_handler._process_tool_uses(tool_uses, None)
+
+        assert len(results) == 1
+        assert results[0]["type"] == "tool_result"
+        mock_command_tracker.get_command_status.assert_called_once_with("cmd-123")
+        # Should not call MCP manager if tracker has status
+        mock_mcp_manager.call_aws_api_tool.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_process_get_command_invocation_without_tracker_status(
+        self, conversation_handler, mock_command_tracker, mock_mcp_manager
+    ):
+        """Test get-command-invocation when tracker has no status."""
+        tool_uses = [
+            {
+                "id": "tool1",
+                "name": "get-command-invocation",
+                "input": {"command_id": "cmd-123"},
+            }
+        ]
+
+        mock_command_tracker.get_command_status.return_value = None
+        mock_mcp_manager.call_aws_api_tool.return_value = {
+            "Status": "Success",
+            "CommandId": "cmd-123",
+        }
+
+        results = await conversation_handler._process_tool_uses(tool_uses, None)
+
+        assert len(results) == 1
+        mock_mcp_manager.call_aws_api_tool.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_process_get_command_invocation_no_command_id(
+        self, conversation_handler, mock_mcp_manager
+    ):
+        """Test get-command-invocation without command_id."""
+        tool_uses = [
+            {
+                "id": "tool1",
+                "name": "get-command-invocation",
+                "input": {},
+            }
+        ]
+
+        mock_mcp_manager.call_aws_api_tool.return_value = {"Status": "Unknown"}
+
+        results = await conversation_handler._process_tool_uses(tool_uses, None)
+
+        assert len(results) == 1
+        mock_mcp_manager.call_aws_api_tool.assert_called_once()
