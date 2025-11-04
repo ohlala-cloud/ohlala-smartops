@@ -240,6 +240,75 @@ class BedrockClient:
             user_friendly_msg = self._get_user_friendly_error_message(e)
             raise BedrockClientError(user_friendly_msg) from e
 
+    async def call_bedrock_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        system_prompt: str,
+        tools: list[dict[str, Any]],
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+    ) -> dict[str, Any]:
+        """Call Bedrock with full control over messages, system prompt, and tools.
+
+        This method is designed for tool-enabled multi-turn conversations where
+        the caller manages the conversation state and tool use iterations.
+
+        Args:
+            messages: List of conversation messages in Claude format.
+            system_prompt: System prompt for Claude.
+            tools: List of tool definitions in Claude format.
+            max_tokens: Optional max tokens override. Defaults to settings value.
+            temperature: Optional temperature override. Defaults to settings value.
+
+        Returns:
+            The raw response body from Bedrock including content and tool_uses.
+
+        Raises:
+            BedrockModelError: If all model invocation attempts fail.
+            BedrockGuardrailError: If guardrails block the request.
+            BedrockClientError: For other client errors.
+
+        Example:
+            >>> client = BedrockClient()
+            >>> response = await client.call_bedrock_with_tools(
+            ...     messages=[{"role": "user", "content": "List instances"}],
+            ...     system_prompt="You are an AWS assistant",
+            ...     tools=[list_instances_tool_schema],
+            ... )
+            {'content': [...], 'stop_reason': 'tool_use', ...}
+        """
+        try:
+            # Prepare Bedrock request
+            request = {
+                "anthropic_version": BEDROCK_ANTHROPIC_VERSION,
+                "max_tokens": max_tokens or self.settings.bedrock_max_tokens,
+                "temperature": temperature
+                if temperature is not None
+                else self.settings.bedrock_temperature,
+                "system": system_prompt,
+                "messages": messages,
+            }
+
+            # Only add tools if provided
+            if tools:
+                request["tools"] = tools
+
+            logger.info(
+                "Calling Bedrock with tools, messages=%d, tools=%d",
+                len(messages),
+                len(tools) if tools else 0,
+            )
+
+            # Invoke model with fallback
+            return await self._invoke_model_with_fallback(request)
+
+        except BedrockGuardrailError:
+            raise
+        except Exception as e:
+            logger.error("Error in Bedrock call with tools: %s", e, exc_info=True)
+            user_friendly_msg = self._get_user_friendly_error_message(e)
+            raise BedrockClientError(user_friendly_msg) from e
+
     async def _invoke_model_with_fallback(self, request: dict[str, Any]) -> dict[str, Any]:
         """Invoke Bedrock model with fallback logic.
 
