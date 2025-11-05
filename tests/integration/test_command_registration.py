@@ -30,8 +30,8 @@ class TestCommandRegistration:
         # Register commands
         register_commands(message_handler)
 
-        # After registration, registry should contain all 15 commands
-        assert len(message_handler._command_registry) == 15
+        # After registration, registry should contain all 16 commands
+        assert len(message_handler._command_registry) == 16
 
     def test_all_expected_commands_registered(self) -> None:
         """Test that all expected commands are registered with correct names."""
@@ -48,6 +48,7 @@ class TestCommandRegistration:
             "help",
             "status",
             "history",
+            "token-usage",
             # Phase 5B: Instance Lifecycle
             "list",
             "start",
@@ -95,7 +96,7 @@ class TestCommandRegistration:
         bot = OhlalaBot()
 
         # Verify commands are registered in the message handler
-        assert len(bot.message_handler._command_registry) == 15
+        assert len(bot.message_handler._command_registry) == 16
 
         # Verify specific commands are available
         assert "help" in bot.message_handler._command_registry
@@ -114,8 +115,8 @@ class TestCommandRegistration:
         register_commands(message_handler)
         register_commands(message_handler)
 
-        # Should still have exactly 15 commands (no duplicates)
-        assert len(message_handler._command_registry) == 15
+        # Should still have exactly 16 commands (no duplicates)
+        assert len(message_handler._command_registry) == 16
 
     def test_command_classes_have_required_properties(self) -> None:
         """Test that all registered command classes have required properties."""

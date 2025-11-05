@@ -23,6 +23,7 @@ from ohlala_smartops.commands.start import StartInstanceCommand
 from ohlala_smartops.commands.status import StatusCommand
 from ohlala_smartops.commands.stop import StopInstanceCommand
 from ohlala_smartops.commands.tag import TagCommand
+from ohlala_smartops.commands.token_usage import TokenUsageCommand
 from ohlala_smartops.commands.untag import UntagCommand
 
 if TYPE_CHECKING:
@@ -45,7 +46,7 @@ def register_commands(message_handler: "MessageHandler") -> None:
         >>> from ohlala_smartops.bot.message_handler import MessageHandler
         >>> handler = MessageHandler(turn_context, mcp_manager, bedrock_client)
         >>> register_commands(handler)
-        >>> # All 14 commands are now registered and available
+        >>> # All 16 commands are now registered and available
 
     Note:
         Commands are registered by their class type, not instances. The message
@@ -57,6 +58,7 @@ def register_commands(message_handler: "MessageHandler") -> None:
         HelpCommand,
         StatusCommand,
         HistoryCommand,
+        TokenUsageCommand,
         # Phase 5B: Instance Lifecycle
         ListInstancesCommand,
         StartInstanceCommand,
