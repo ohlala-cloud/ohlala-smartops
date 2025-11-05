@@ -54,7 +54,11 @@ class TokenUsageCommand(BaseCommand):
         """Command is visible in help listings."""
         return True
 
-    async def execute(self, args: list[str], context: dict[str, Any]) -> dict[str, Any]:  # noqa: ARG002
+    async def execute(
+        self,
+        args: list[str],
+        context: dict[str, Any],  # noqa: ARG002
+    ) -> dict[str, Any]:
         """Execute the token usage command.
 
         Args:
