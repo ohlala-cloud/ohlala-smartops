@@ -44,7 +44,12 @@ from ohlala_smartops.constants import (
 )
 from ohlala_smartops.utils.audit_logger import AuditLogger
 from ohlala_smartops.utils.bedrock_throttler import BedrockThrottler
-from ohlala_smartops.utils.token_tracker import TokenTracker
+from ohlala_smartops.utils.token_tracker import (
+    TokenTracker,
+    check_operation_limits,
+    estimate_bedrock_input_tokens,
+    track_bedrock_operation,
+)
 
 logger: Final = logging.getLogger(__name__)
 
@@ -187,10 +192,34 @@ class BedrockClient:
         # Prepare messages
         messages = [{"role": "user", "content": prompt}]
 
-        # Phase 3 TODO: Token estimation and budget checking
-        # Will be implemented when token_estimator functions are migrated
-        estimated_input_tokens = 100  # Placeholder
-        logger.info("Token estimation placeholder - will be implemented in Phase 3")
+        # Token estimation and budget checking
+        # Extract text from messages for estimation
+        user_message = messages[0]["content"] if messages else ""
+        estimated_input = estimate_bedrock_input_tokens(
+            system_prompt=system_prompt,
+            user_message=user_message,
+            tool_definitions=[],  # Phase 3: Will add tools when MCP Manager is integrated
+            conversation_context="",
+        )
+
+        # Check operation limits before calling Bedrock
+        limit_check = check_operation_limits(
+            estimated_input_tokens=estimated_input,
+            operation_type="bedrock_call",
+            num_instances=1,
+        )
+
+        # Log warnings if any
+        for warning in limit_check.get("warnings", []):
+            logger.warning("Token limit warning: %s", warning)
+
+        # Hard block only if model token limit exceeded
+        if not limit_check["allowed"]:
+            error_msg = "Operation blocked: Token limit exceeded. " + " ".join(
+                limit_check.get("warnings", [])
+            )
+            logger.error(error_msg)
+            raise BedrockClientError(error_msg)
 
         # Build Bedrock request
         request: dict[str, Any] = {
@@ -211,10 +240,23 @@ class BedrockClient:
 
             # Extract usage statistics
             usage = response_body.get("usage", {})
-            actual_input_tokens = usage.get("input_tokens", estimated_input_tokens)
+            actual_input_tokens = usage.get("input_tokens", estimated_input)
             actual_output_tokens = usage.get("output_tokens", 0)
 
-            # Phase 3 TODO: Track the operation with token_tracker
+            # Track the operation with token_tracker
+            track_bedrock_operation(
+                operation_type="bedrock_call",
+                input_tokens=actual_input_tokens,
+                output_tokens=actual_output_tokens,
+                num_instances=1,
+                metadata={
+                    "user_id": user_id or "anonymous",
+                    "prompt_preview": prompt[:100] if len(prompt) > 100 else prompt,
+                    "stop_reason": response_body.get("stopReason", "unknown"),
+                    "tools_count": 0,  # Phase 3: Will track tools when MCP is integrated
+                },
+            )
+
             # Phase 3 TODO: Audit log the call with correct parameters
             logger.info(
                 "Bedrock call completed: input_tokens=%d, output_tokens=%d",

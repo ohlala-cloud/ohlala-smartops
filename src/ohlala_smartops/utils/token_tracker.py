@@ -23,11 +23,11 @@ class TokenTracker:
     Daily statistics are stored in a JSON file and reset at midnight UTC.
 
     Attributes:
-        PRICING: Claude Sonnet 4.0 pricing per 1K tokens.
+        PRICING: Claude Sonnet 4.5 pricing per 1K tokens.
         LIMITS: Token and cost limits with warning thresholds.
     """
 
-    # Claude Sonnet 4.0 pricing (per 1000 tokens)
+    # Claude Sonnet 4.5 pricing (per 1000 tokens)
     PRICING: Final[dict[str, float]] = {
         "input_tokens_per_1k": 0.003,  # $3 per million input tokens
         "output_tokens_per_1k": 0.015,  # $15 per million output tokens
@@ -35,7 +35,7 @@ class TokenTracker:
 
     # Model limits
     LIMITS: Final[dict[str, float]] = {
-        "max_input_tokens": 200000,  # Claude Sonnet 4 context window
+        "max_input_tokens": 200000,  # Claude Sonnet 4.5 context window
         "max_output_tokens": 4096,  # Max response size
         "warning_threshold": 0.8,  # Warn at 80% of limit
         "max_daily_cost": 5.0,  # Daily cost limit ($5)
