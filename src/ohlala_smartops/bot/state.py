@@ -11,6 +11,7 @@ from typing import Protocol
 
 from ohlala_smartops.models import (
     ApprovalRequest,
+    CommandHistoryEntry,
     ConversationContext,
     ConversationState,
 )
@@ -120,6 +121,40 @@ class StateStorage(Protocol):
         """
         ...
 
+    @abstractmethod
+    async def add_command_history(self, entry: CommandHistoryEntry) -> None:
+        """Add command to history.
+
+        Args:
+            entry: Command history entry to store.
+        """
+        ...
+
+    @abstractmethod
+    async def get_recent_commands(self, user_id: str, limit: int = 10) -> list[CommandHistoryEntry]:
+        """Get recent command history for a user.
+
+        Args:
+            user_id: User ID to get history for.
+            limit: Maximum number of entries to return.
+
+        Returns:
+            List of command history entries, most recent first.
+        """
+        ...
+
+    @abstractmethod
+    async def get_command_history(self, command_id: str) -> CommandHistoryEntry | None:
+        """Get specific command history entry.
+
+        Args:
+            command_id: Command ID to retrieve.
+
+        Returns:
+            Command history entry if found, None otherwise.
+        """
+        ...
+
 
 class InMemoryStateStorage:
     """In-memory state storage for development and testing.
@@ -145,6 +180,8 @@ class InMemoryStateStorage:
         self._approvals: dict[str, ApprovalRequest] = {}
         self._state_expiry: dict[str, datetime] = {}
         self._context_expiry: dict[str, datetime] = {}
+        self._command_history: dict[str, CommandHistoryEntry] = {}
+        self._user_command_ids: dict[str, list[str]] = {}
         logger.info("Initialized in-memory state storage")
 
     async def get_state(self, conversation_id: str) -> ConversationState | None:
@@ -284,6 +321,50 @@ class InMemoryStateStorage:
         self._context_expiry.pop(conversation_id, None)
         logger.debug(f"Deleted context for conversation {conversation_id}")
 
+    async def add_command_history(self, entry: CommandHistoryEntry) -> None:
+        """Add command to history.
+
+        Args:
+            entry: Command history entry to store.
+        """
+        self._command_history[entry.command_id] = entry
+
+        # Track command IDs by user for efficient lookup
+        if entry.user_id not in self._user_command_ids:
+            self._user_command_ids[entry.user_id] = []
+        self._user_command_ids[entry.user_id].insert(0, entry.command_id)  # Most recent first
+
+        # Limit history per user to 100 entries (prevent memory growth)
+        if len(self._user_command_ids[entry.user_id]) > 100:
+            old_command_id = self._user_command_ids[entry.user_id].pop()
+            self._command_history.pop(old_command_id, None)
+
+        logger.debug(f"Added command {entry.command_id} to history for user {entry.user_id}")
+
+    async def get_recent_commands(self, user_id: str, limit: int = 10) -> list[CommandHistoryEntry]:
+        """Get recent command history for a user.
+
+        Args:
+            user_id: User ID to get history for.
+            limit: Maximum number of entries to return.
+
+        Returns:
+            List of command history entries, most recent first.
+        """
+        command_ids = self._user_command_ids.get(user_id, [])[:limit]
+        return [self._command_history[cid] for cid in command_ids if cid in self._command_history]
+
+    async def get_command_history(self, command_id: str) -> CommandHistoryEntry | None:
+        """Get specific command history entry.
+
+        Args:
+            command_id: Command ID to retrieve.
+
+        Returns:
+            Command history entry if found, None otherwise.
+        """
+        return self._command_history.get(command_id)
+
 
 class ConversationStateManager:
     """Manager for conversation state and context.
@@ -408,6 +489,39 @@ class ConversationStateManager:
         await self.storage.delete_state(conversation_id)
         await self.storage.delete_context(conversation_id)
         logger.info(f"Cleared all data for conversation {conversation_id}")
+
+    async def add_command_to_history(self, entry: CommandHistoryEntry) -> None:
+        """Add command to history.
+
+        Args:
+            entry: Command history entry to store.
+        """
+        await self.storage.add_command_history(entry)
+
+    async def get_user_command_history(
+        self, user_id: str, limit: int = 10
+    ) -> list[CommandHistoryEntry]:
+        """Get recent command history for a user.
+
+        Args:
+            user_id: User ID to get history for.
+            limit: Maximum number of entries to return.
+
+        Returns:
+            List of command history entries, most recent first.
+        """
+        return await self.storage.get_recent_commands(user_id, limit)
+
+    async def get_command_by_id(self, command_id: str) -> CommandHistoryEntry | None:
+        """Get specific command history entry.
+
+        Args:
+            command_id: Command ID to retrieve.
+
+        Returns:
+            Command history entry if found, None otherwise.
+        """
+        return await self.storage.get_command_history(command_id)
 
 
 def create_state_manager(storage_type: str = "memory") -> ConversationStateManager:

@@ -14,6 +14,7 @@ from ohlala_smartops.commands.costs import CostsCommand
 from ohlala_smartops.commands.exec import ExecCommand
 from ohlala_smartops.commands.find_by_tags import FindByTagsCommand
 from ohlala_smartops.commands.help import HelpCommand
+from ohlala_smartops.commands.history import HistoryCommand
 from ohlala_smartops.commands.instance_details import InstanceDetailsCommand
 from ohlala_smartops.commands.list_instances import ListInstancesCommand
 from ohlala_smartops.commands.metrics import MetricsCommand
@@ -55,6 +56,7 @@ def register_commands(message_handler: "MessageHandler") -> None:
         # Phase 5A: Core Commands
         HelpCommand,
         StatusCommand,
+        HistoryCommand,
         # Phase 5B: Instance Lifecycle
         ListInstancesCommand,
         StartInstanceCommand,

@@ -27,6 +27,10 @@ from ohlala_smartops.models.cards import (
     InstanceActionCardData,
     MetricsCardData,
 )
+from ohlala_smartops.models.command_history import (
+    CommandHistoryEntry,
+    CommandHistoryStatus,
+)
 from ohlala_smartops.models.command_tracking import (
     CommandTrackingInfo,
     SSMCommandStatus,
@@ -100,6 +104,8 @@ __all__ = [
     "ChannelInfo",
     "CloudWatchMetricsRequest",
     "CommandFormData",
+    "CommandHistoryEntry",
+    "CommandHistoryStatus",
     "CommandPriority",
     "CommandRequest",
     "CommandResponse",
