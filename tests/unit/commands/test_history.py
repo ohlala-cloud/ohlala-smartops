@@ -418,7 +418,7 @@ class TestHistoryCommand:
 
         completion = command._format_completion_time(entry)
 
-        assert "Completed:" in completion
+        assert "**Completed**:" in completion
         assert "ago" in completion
 
     def test_format_completion_time_no_completion(self, command: HistoryCommand) -> None:
