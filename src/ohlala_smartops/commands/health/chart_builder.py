@@ -86,7 +86,7 @@ class ChartBuilder:
         for dp in recent_points:
             y_value = dp.get("value", 0)
             # Ensure y value is a valid number
-            if not isinstance(y_value, (int, float)) or y_value != y_value:  # Check for NaN
+            if not isinstance(y_value, int | float) or y_value != y_value:  # Check for NaN
                 y_value = 0
 
             # Format timestamp for x-axis
@@ -229,7 +229,7 @@ class ChartBuilder:
         if recent_in:
             for dp in recent_in:
                 y_value = dp.get("value", 0)
-                if not isinstance(y_value, (int, float)) or y_value != y_value:
+                if not isinstance(y_value, int | float) or y_value != y_value:
                     y_value = 0
 
                 # Format timestamp
@@ -265,7 +265,7 @@ class ChartBuilder:
         if recent_out:
             for dp in recent_out:
                 y_value = dp.get("value", 0)
-                if not isinstance(y_value, (int, float)) or y_value != y_value:
+                if not isinstance(y_value, int | float) or y_value != y_value:
                     y_value = 0
 
                 # Format timestamp
