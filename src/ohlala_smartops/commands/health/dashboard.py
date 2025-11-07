@@ -6,9 +6,8 @@ overview with batched processing for performance and rate limit management.
 """
 
 import asyncio
+import logging
 from typing import Any, Final
-
-import structlog
 
 from ohlala_smartops.commands.base import BaseCommand
 from ohlala_smartops.commands.health.card_builder import CardBuilder
@@ -16,8 +15,41 @@ from ohlala_smartops.commands.health.chart_builder import ChartBuilder
 from ohlala_smartops.commands.health.metrics_collector import MetricsCollector
 from ohlala_smartops.commands.health.system_inspector import SystemInspector
 
-# Configure structured logging
-logger: structlog.BoundLogger = structlog.get_logger(__name__)
+# Configure structured logging with fallback for Python 3.13 compatibility
+try:
+    import structlog
+
+    logger: structlog.BoundLogger = structlog.get_logger(__name__)
+except (ImportError, Exception):
+    # Fallback to standard logging if structlog has compatibility issues
+    # Create a wrapper that provides structlog-like API
+    class _LoggerAdapter:
+        """Adapter to make standard logger compatible with structlog API."""
+
+        def __init__(self, logger: logging.Logger) -> None:
+            self._logger = logger
+
+        def bind(self, **kwargs: Any) -> "_LoggerAdapter":
+            """Return self for compatibility with structlog.bind()."""
+            return self
+
+        def info(self, msg: str, **kwargs: Any) -> None:
+            """Log info message."""
+            self._logger.info(msg)
+
+        def warning(self, msg: str, **kwargs: Any) -> None:
+            """Log warning message."""
+            self._logger.warning(msg)
+
+        def error(self, msg: str, **kwargs: Any) -> None:
+            """Log error message."""
+            self._logger.error(msg, exc_info=kwargs.get("exc_info", False))
+
+        def debug(self, msg: str, **kwargs: Any) -> None:
+            """Log debug message."""
+            self._logger.debug(msg)
+
+    logger = _LoggerAdapter(logging.getLogger(__name__))  # type: ignore[assignment]
 
 # Batch processing configuration
 BATCH_SIZE: Final[int] = 3  # Process 3 instances at a time

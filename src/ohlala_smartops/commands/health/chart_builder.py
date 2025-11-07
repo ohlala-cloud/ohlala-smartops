@@ -5,13 +5,45 @@ health metrics using Microsoft Teams Adaptive Cards native charting capabilities
 Supports responsive design with desktop charts and mobile-friendly summaries.
 """
 
+import logging
 from datetime import datetime
 from typing import Any, Final
 
-import structlog
+# Configure structured logging with fallback for Python 3.13 compatibility
+try:
+    import structlog
 
-# Configure structured logging
-logger: structlog.BoundLogger = structlog.get_logger(__name__)
+    logger: structlog.BoundLogger = structlog.get_logger(__name__)
+except (ImportError, Exception):
+    # Fallback to standard logging if structlog has compatibility issues
+    # Create a wrapper that provides structlog-like API
+    class _LoggerAdapter:
+        """Adapter to make standard logger compatible with structlog API."""
+
+        def __init__(self, logger: logging.Logger) -> None:
+            self._logger = logger
+
+        def bind(self, **kwargs: Any) -> "_LoggerAdapter":
+            """Return self for compatibility with structlog.bind()."""
+            return self
+
+        def info(self, msg: str, **kwargs: Any) -> None:
+            """Log info message."""
+            self._logger.info(msg)
+
+        def warning(self, msg: str, **kwargs: Any) -> None:
+            """Log warning message."""
+            self._logger.warning(msg)
+
+        def error(self, msg: str, **kwargs: Any) -> None:
+            """Log error message."""
+            self._logger.error(msg, exc_info=kwargs.get("exc_info", False))
+
+        def debug(self, msg: str, **kwargs: Any) -> None:
+            """Log debug message."""
+            self._logger.debug(msg)
+
+    logger = _LoggerAdapter(logging.getLogger(__name__))  # type: ignore[assignment]
 
 # Chart color scheme constants
 COLOR_USED: Final[str] = "categoricalMarigold"  # Orange tone for usage metrics

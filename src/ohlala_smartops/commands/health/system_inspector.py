@@ -6,15 +6,48 @@ platform-specific commands for disk analysis, error logs, and system details.
 """
 
 import json
+import logging
 from typing import Any, Final
 
-import structlog
 from pydantic import BaseModel
 
 from ohlala_smartops.aws.ssm_commands import SSMCommandManager
 
-# Configure structured logging
-logger: structlog.BoundLogger = structlog.get_logger(__name__)
+# Configure structured logging with fallback for Python 3.13 compatibility
+try:
+    import structlog
+
+    logger: structlog.BoundLogger = structlog.get_logger(__name__)
+except (ImportError, Exception):
+    # Fallback to standard logging if structlog has compatibility issues
+    # Create a wrapper that provides structlog-like API
+    class _LoggerAdapter:
+        """Adapter to make standard logger compatible with structlog API."""
+
+        def __init__(self, logger: logging.Logger) -> None:
+            self._logger = logger
+
+        def bind(self, **kwargs: Any) -> "_LoggerAdapter":
+            """Return self for compatibility with structlog.bind()."""
+            return self
+
+        def info(self, msg: str, **kwargs: Any) -> None:
+            """Log info message."""
+            self._logger.info(msg)
+
+        def warning(self, msg: str, **kwargs: Any) -> None:
+            """Log warning message."""
+            self._logger.warning(msg)
+
+        def error(self, msg: str, **kwargs: Any) -> None:
+            """Log error message."""
+            self._logger.error(msg, exc_info=kwargs.get("exc_info", False))
+
+        def debug(self, msg: str, **kwargs: Any) -> None:
+            """Log debug message."""
+            self._logger.debug(msg)
+
+    logger = _LoggerAdapter(logging.getLogger(__name__))  # type: ignore[assignment]
 
 # SSM command timeout
 SSM_COMMAND_TIMEOUT: Final[int] = 15  # seconds
