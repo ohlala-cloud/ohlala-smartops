@@ -116,7 +116,7 @@ class TestCommandRegistration:
         register_commands(message_handler)
         register_commands(message_handler)
 
-        # Should still have exactly 16 commands (no duplicates)
+        # Should still have exactly 17 commands (no duplicates)
         assert len(message_handler._command_registry) == 17
 
     def test_command_classes_have_required_properties(self) -> None:
