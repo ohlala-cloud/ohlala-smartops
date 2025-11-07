@@ -1,7 +1,9 @@
 """Unit tests for MetricsCollector."""
 
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Mock structlog to avoid Python 3.13 compatibility issues with zope.interface
 sys.modules["structlog"] = MagicMock()
@@ -48,6 +50,173 @@ class TestMetricsCollector:
         command = collector._get_linux_metrics_command()
         assert isinstance(command, str)
         assert len(command) > 0
+
+    @pytest.mark.asyncio
+    @patch("ohlala_smartops.commands.health.metrics_collector.CloudWatchManager")
+    async def test_get_cloudwatch_metrics_success(self, mock_cw: MagicMock) -> None:
+        """Test getting CloudWatch metrics successfully."""
+        # Create mock datapoints
+        mock_datapoint = MagicMock()
+        mock_datapoint.value = 45.5
+        mock_datapoint.timestamp = MagicMock()
+        mock_datapoint.timestamp.isoformat.return_value = "2025-11-07T10:00:00Z"
+
+        mock_manager = AsyncMock()
+        mock_manager.get_metric_statistics = AsyncMock(return_value=[mock_datapoint])
+        mock_cw.return_value = mock_manager
+
+        collector = MetricsCollector(cloudwatch_manager=mock_manager, region="us-east-1")
+        result = await collector.get_cloudwatch_metrics("i-1234567890abcdef0", hours=6)
+
+        assert isinstance(result, HealthMetrics)
+        assert result.success is True
+        assert "datapoints" in result.cpu_graph
+        assert len(result.cpu_graph["datapoints"]) > 0
+
+    @pytest.mark.asyncio
+    @patch("ohlala_smartops.commands.health.metrics_collector.CloudWatchManager")
+    async def test_get_cloudwatch_metrics_failure(self, mock_cw: MagicMock) -> None:
+        """Test CloudWatch metrics with API failure."""
+        mock_manager = AsyncMock()
+        mock_manager.get_metric_statistics = AsyncMock(side_effect=Exception("API Error"))
+        mock_cw.return_value = mock_manager
+
+        collector = MetricsCollector(cloudwatch_manager=mock_manager, region="us-east-1")
+        result = await collector.get_cloudwatch_metrics("i-1234567890abcdef0", hours=6)
+
+        assert isinstance(result, HealthMetrics)
+        # Even with errors, partial data may be available
+        assert "datapoints" in result.cpu_graph
+
+    @pytest.mark.asyncio
+    @patch("ohlala_smartops.commands.health.metrics_collector.SSMCommandManager")
+    async def test_get_realtime_system_metrics_linux_success(self, mock_ssm: MagicMock) -> None:
+        """Test getting real-time metrics for Linux."""
+        mock_invocation = MagicMock()
+        mock_invocation.status = "Success"
+        mock_invocation.stdout = (
+            '{"cpu_percent": 45.2, "memory_percent": 60.5, "memory_used_mb": 12800, '
+            '"memory_total_mb": 16384, "processes": 120, "uptime_text": "5 days"}'
+        )
+
+        mock_manager = AsyncMock()
+        mock_manager.send_command = AsyncMock(return_value=MagicMock(command_id="test-cmd-id"))
+        mock_manager.wait_for_completion = AsyncMock(return_value=mock_invocation)
+        mock_ssm.return_value = mock_manager
+
+        # Mock SSM availability check
+        with patch.object(MetricsCollector, "_check_ssm_availability", return_value=True):
+            collector = MetricsCollector(ssm_manager=mock_manager, region="us-east-1")
+            result = await collector.get_realtime_system_metrics(
+                "i-1234567890abcdef0", platform="linux"
+            )
+
+            assert isinstance(result, RealtimeMetrics)
+            assert result.success is True
+            assert result.cpu_percent == 45.2
+            assert result.memory_percent == 60.5
+
+    @pytest.mark.asyncio
+    @patch("ohlala_smartops.commands.health.metrics_collector.SSMCommandManager")
+    async def test_get_realtime_system_metrics_windows_success(self, mock_ssm: MagicMock) -> None:
+        """Test getting real-time metrics for Windows."""
+        mock_invocation = MagicMock()
+        mock_invocation.status = "Success"
+        mock_invocation.stdout = (
+            '{"cpu_percent": 35.0, "memory_percent": 55.0, "memory_used_mb": 8000, '
+            '"memory_total_mb": 16384, "processes": 80, "uptime_text": "3 days"}'
+        )
+
+        mock_manager = AsyncMock()
+        mock_manager.send_command = AsyncMock(return_value=MagicMock(command_id="test-cmd-id"))
+        mock_manager.wait_for_completion = AsyncMock(return_value=mock_invocation)
+        mock_ssm.return_value = mock_manager
+
+        with patch.object(MetricsCollector, "_check_ssm_availability", return_value=True):
+            collector = MetricsCollector(ssm_manager=mock_manager, region="us-east-1")
+            result = await collector.get_realtime_system_metrics(
+                "i-1234567890abcdef0", platform="windows"
+            )
+
+            assert isinstance(result, RealtimeMetrics)
+            assert result.success is True
+            assert result.cpu_percent == 35.0
+
+    @pytest.mark.asyncio
+    @patch("ohlala_smartops.commands.health.metrics_collector.SSMCommandManager")
+    async def test_get_realtime_system_metrics_ssm_unavailable(self, mock_ssm: MagicMock) -> None:
+        """Test real-time metrics when SSM is unavailable."""
+        mock_manager = AsyncMock()
+        mock_ssm.return_value = mock_manager
+
+        with (
+            patch.object(MetricsCollector, "_check_ssm_availability", return_value=False),
+            patch.object(
+                MetricsCollector,
+                "_generate_ssm_unavailable_message",
+                return_value="SSM not available",
+            ),
+        ):
+            collector = MetricsCollector(ssm_manager=mock_manager, region="us-east-1")
+            result = await collector.get_realtime_system_metrics(
+                "i-1234567890abcdef0", platform="linux"
+            )
+
+            assert isinstance(result, RealtimeMetrics)
+            assert result.success is False
+            assert result.ssm_unavailable is True
+
+    @pytest.mark.asyncio
+    async def test_get_realtime_system_metrics_invalid_platform(self) -> None:
+        """Test real-time metrics with invalid platform."""
+        collector = MetricsCollector(region="us-east-1")
+        with pytest.raises(ValueError, match="Invalid platform"):
+            await collector.get_realtime_system_metrics("i-1234567890abcdef0", platform="invalid")
+
+    @pytest.mark.asyncio
+    @patch("ohlala_smartops.commands.health.metrics_collector.SSMCommandManager")
+    async def test_get_realtime_system_metrics_invalid_json(self, mock_ssm: MagicMock) -> None:
+        """Test real-time metrics with invalid JSON response."""
+        mock_invocation = MagicMock()
+        mock_invocation.status = "Success"
+        mock_invocation.stdout = "not valid json"
+
+        mock_manager = AsyncMock()
+        mock_manager.send_command = AsyncMock(return_value=MagicMock(command_id="test-cmd-id"))
+        mock_manager.wait_for_completion = AsyncMock(return_value=mock_invocation)
+        mock_ssm.return_value = mock_manager
+
+        with patch.object(MetricsCollector, "_check_ssm_availability", return_value=True):
+            collector = MetricsCollector(ssm_manager=mock_manager, region="us-east-1")
+            result = await collector.get_realtime_system_metrics(
+                "i-1234567890abcdef0", platform="linux"
+            )
+
+            assert isinstance(result, RealtimeMetrics)
+            assert result.success is False
+
+    @pytest.mark.asyncio
+    @patch("ohlala_smartops.commands.health.metrics_collector.SSMCommandManager")
+    async def test_get_realtime_system_metrics_command_failure(self, mock_ssm: MagicMock) -> None:
+        """Test real-time metrics when SSM command fails."""
+        mock_invocation = MagicMock()
+        mock_invocation.status = "Failed"
+        mock_invocation.stdout = ""
+        mock_invocation.stderr = "Command execution failed"
+
+        mock_manager = AsyncMock()
+        mock_manager.send_command = AsyncMock(return_value=MagicMock(command_id="test-cmd-id"))
+        mock_manager.wait_for_completion = AsyncMock(return_value=mock_invocation)
+        mock_ssm.return_value = mock_manager
+
+        with patch.object(MetricsCollector, "_check_ssm_availability", return_value=True):
+            collector = MetricsCollector(ssm_manager=mock_manager, region="us-east-1")
+            result = await collector.get_realtime_system_metrics(
+                "i-1234567890abcdef0", platform="linux"
+            )
+
+            assert isinstance(result, RealtimeMetrics)
+            assert result.success is False
 
 
 class TestHealthMetrics:
