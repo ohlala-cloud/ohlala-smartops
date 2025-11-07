@@ -9,7 +9,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
-from typing import Any, Final
+from typing import Any, Final, TypeVar
 
 import boto3
 from botocore.client import BaseClient
@@ -327,7 +327,10 @@ def create_aws_client(
     return AWSClientWrapper(service_name, region, **kwargs)
 
 
-async def execute_with_retry[T](
+T = TypeVar("T")
+
+
+async def execute_with_retry(
     operation: Callable[[], Awaitable[T]],
     max_retries: int = 3,
     base_delay: float = 1.0,
