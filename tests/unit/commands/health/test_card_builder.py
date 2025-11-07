@@ -456,3 +456,131 @@ class TestCardBuilder:
         card = builder.build_health_dashboard_card(instance, metrics)
         assert card is not None
         assert len(card["body"]) > 5
+
+    def test_build_health_dashboard_card_with_error_logs_key(self) -> None:
+        """Test dashboard card with error_logs key (not logs)."""
+        builder = CardBuilder()
+        instance = {"name": "server", "instance_id": "i-logs2", "type": "t3.micro"}
+        metrics = {
+            "system_logs": {
+                "error_logs": [
+                    {"Time": "2025-11-07 10:00:00", "Source": "kernel", "Message": "Error 1"},
+                    {"Time": "2025-11-07 10:05:00", "Source": "systemd", "Message": "Error 2"},
+                    {"Time": "2025-11-07 10:10:00", "Source": "app", "Message": "Error 3"},
+                ]
+            }
+        }
+
+        card = builder.build_health_dashboard_card(instance, metrics)
+        assert card is not None
+        assert "body" in card
+
+    def test_build_health_dashboard_card_with_long_error_messages(self) -> None:
+        """Test dashboard card with very long error messages (truncation)."""
+        builder = CardBuilder()
+        instance = {"name": "server", "instance_id": "i-long-err", "type": "t3.micro"}
+        long_message = "Error: " + "x" * 300  # 306 chars, should be truncated to 200
+        metrics = {
+            "system_logs": {
+                "error_logs": [{"Time": "2025-11-07 10:00:00", "Message": long_message}]
+            }
+        }
+
+        card = builder.build_health_dashboard_card(instance, metrics)
+        assert card is not None
+
+    def test_build_health_dashboard_card_with_six_error_logs(self) -> None:
+        """Test dashboard card with 6 error logs (only 5 should be shown)."""
+        builder = CardBuilder()
+        instance = {"name": "server", "instance_id": "i-six-errors", "type": "t3.micro"}
+        metrics = {
+            "system_logs": {
+                "error_logs": [{"Time": f"10:{i:02d}", "Message": f"Error {i}"} for i in range(6)]
+            }
+        }
+
+        card = builder.build_health_dashboard_card(instance, metrics)
+        assert card is not None
+
+    def test_build_health_dashboard_card_with_empty_error_message(self) -> None:
+        """Test dashboard card with empty error message."""
+        builder = CardBuilder()
+        instance = {"name": "server", "instance_id": "i-empty", "type": "t3.micro"}
+        metrics = {
+            "system_logs": {
+                "error_logs": [
+                    {"Time": "2025-11-07 10:00:00", "Message": ""},  # Empty message
+                    {"Time": "2025-11-07 10:05:00", "Message": "Real error"},
+                ]
+            }
+        }
+
+        card = builder.build_health_dashboard_card(instance, metrics)
+        assert card is not None
+
+    def test_build_health_dashboard_card_with_zero_memory_total(self) -> None:
+        """Test dashboard card with zero total memory."""
+        builder = CardBuilder()
+        instance = {"name": "server", "instance_id": "i-zero-mem", "type": "t3.micro"}
+        metrics = {
+            "system_metrics": {
+                "memory_used_mb": 100,
+                "memory_total_mb": 0,  # Zero total
+                "memory_percent": 0,
+            }
+        }
+
+        card = builder.build_health_dashboard_card(instance, metrics)
+        assert card is not None
+
+    def test_build_overview_card_with_missing_instance_data(self) -> None:
+        """Test overview card when summary has no matching instance."""
+        builder = CardBuilder()
+        instances = [
+            {"instance_id": "i-exists", "name": "exists", "type": "t3.micro", "state": "running"}
+        ]
+        summaries = [
+            {
+                "instance_id": "i-missing",
+                "cpu_avg": 50.0,
+                "status": "healthy",
+            }  # No matching instance
+        ]
+
+        card = builder.build_overview_card(instances, summaries, {})
+        assert card is not None
+
+    def test_build_health_dashboard_card_with_empty_disk_list(self) -> None:
+        """Test dashboard card with explicitly empty disk list."""
+        builder = CardBuilder()
+        instance = {"name": "server", "instance_id": "i-no-disks", "type": "t3.micro"}
+        metrics = {
+            "disk_usage": {
+                "disks": []  # Explicitly empty
+            }
+        }
+
+        card = builder.build_health_dashboard_card(instance, metrics)
+        assert card is not None
+
+    def test_build_health_dashboard_card_with_high_disk_usage(self) -> None:
+        """Test dashboard card with very high disk usage (>90%)."""
+        builder = CardBuilder()
+        instance = {"name": "server", "instance_id": "i-full-disk", "type": "t3.micro"}
+        metrics = {
+            "disk_usage": {
+                "disks": [
+                    {
+                        "Device": "/dev/sda1",
+                        "Mount": "/",
+                        "SizeGB": 100,
+                        "UsedGB": 95,
+                        "FreeGB": 5,
+                        "UsedPercent": 95.0,  # Very high
+                    }
+                ]
+            }
+        }
+
+        card = builder.build_health_dashboard_card(instance, metrics)
+        assert card is not None
