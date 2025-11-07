@@ -690,8 +690,6 @@ class CardBuilder:
         write_iops = ebs_aggregated.get("avg_write_iops", 0)
         # Note: read_mbps and write_mbps available in aggregated if needed in future
 
-        volume_count = len(ebs_data.get("volumes", [])) if ebs_data else 0
-
         return [
             {
                 "type": "Container",
@@ -801,11 +799,6 @@ class CardBuilder:
             sys_info.get("RunningServices", 0)
             if isinstance(sys_info, dict)
             else getattr(sys_info, "RunningServices", 0)
-        )
-        failed_services = (
-            sys_info.get("FailedServices", "")
-            if isinstance(sys_info, dict)
-            else getattr(sys_info, "FailedServices", "")
         )
 
         return [
@@ -1226,7 +1219,7 @@ class CardBuilder:
             sections.append(self._create_instance_row("🟢", name, metrics_text, "Good", inst_id))
 
         # Show stopped instances
-        for name, inst_id, state in stopped:
+        for name, _inst_id, state in stopped:
             sections.append(
                 self._create_instance_row("⚫", name, f"State: {state}", "Dark", None, False)
             )
@@ -1345,11 +1338,11 @@ class CardBuilder:
 
         # CPU
         cpu_val = sys_metrics.get("cpu_percent", sys_metrics.get("CPU", 0))
-        normalized["CPU"] = cpu_val if isinstance(cpu_val, (int, float)) else 0
+        normalized["CPU"] = cpu_val if isinstance(cpu_val, int | float) else 0
 
         # Memory
         mem_val = sys_metrics.get("memory_percent", sys_metrics.get("MemoryPercent", 0))
-        normalized["MemoryPercent"] = mem_val if isinstance(mem_val, (int, float)) else 0
+        normalized["MemoryPercent"] = mem_val if isinstance(mem_val, int | float) else 0
 
         # Process count
         proc_val = sys_metrics.get("processes", sys_metrics.get("ProcessCount"))

@@ -15,7 +15,6 @@ from pydantic import BaseModel, Field
 
 from ohlala_smartops.aws.cloudwatch import CloudWatchManager
 from ohlala_smartops.aws.ssm_commands import SSMCommandManager
-from ohlala_smartops.models.exceptions import ValidationError
 
 # Configure structured logging
 logger: structlog.BoundLogger = structlog.get_logger(__name__)
@@ -144,7 +143,7 @@ class MetricsCollector:
 
             # Sequential collection to respect rate limits
             results: list[dict[str, Any] | Exception] = []
-            for i, (metric_name, key, statistic) in enumerate(metric_configs):
+            for i, (metric_name, _key, statistic) in enumerate(metric_configs):
                 self.logger.debug(
                     "fetching_metric",
                     metric_name=metric_name,
@@ -262,8 +261,7 @@ class MetricsCollector:
 
         except Exception as e:
             self.logger.error("cloudwatch_metrics_error", instance_id=instance_id, error=str(e))
-            metrics_data = HealthMetrics(success=False, error=str(e))
-            return metrics_data
+            return HealthMetrics(success=False, error=str(e))
 
     async def _fetch_ebs_metrics(
         self,
@@ -353,7 +351,7 @@ class MetricsCollector:
             RealtimeMetrics object with current system metrics.
 
         Raises:
-            ValidationError: If platform is not "windows" or "linux".
+            ValueError: If platform is not "windows" or "linux".
 
         Example:
             >>> metrics = await collector.get_realtime_system_metrics("i-1234567890", "linux")
@@ -363,7 +361,7 @@ class MetricsCollector:
 
         # Validate platform
         if platform.lower() not in ["windows", "linux"]:
-            raise ValidationError(f"Invalid platform: {platform}. Must be 'windows' or 'linux'.")
+            raise ValueError(f"Invalid platform: {platform}. Must be 'windows' or 'linux'.")
 
         try:
             # Check SSM availability first
@@ -628,12 +626,12 @@ echo "{\\"cpu_percent\\":$cpu_percent,\\"memory_percent\\":$mem_percent,\\"memor
             if metrics.success:
                 cpu = (
                     float(metrics.cpu_percent)
-                    if isinstance(metrics.cpu_percent, (int, float))
+                    if isinstance(metrics.cpu_percent, int | float)
                     else 0
                 )
                 memory = (
                     float(metrics.memory_percent)
-                    if isinstance(metrics.memory_percent, (int, float))
+                    if isinstance(metrics.memory_percent, int | float)
                     else 0
                 )
 
