@@ -9,7 +9,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
-from typing import Any, Final
+from typing import Any, Final, TypeVar
 
 import boto3
 from botocore.client import BaseClient
@@ -30,6 +30,8 @@ from ohlala_smartops.aws.exceptions import (
 from ohlala_smartops.utils import throttled_aws_call
 
 logger: Final = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 
 class AWSClientWrapper:
@@ -65,9 +67,7 @@ class AWSClientWrapper:
         """
         self.service_name = service_name
         self.region = region
-        self._client: BaseClient = boto3.client(  # type: ignore[call-overload]
-            service_name, region_name=region, **kwargs
-        )
+        self._client: BaseClient = boto3.client(service_name, region_name=region, **kwargs)
         logger.info(f"Initialized AWS {service_name} client for region {region or 'default'}")
 
     async def call(self, operation: str, **kwargs: Any) -> Any:
@@ -327,7 +327,7 @@ def create_aws_client(
     return AWSClientWrapper(service_name, region, **kwargs)
 
 
-async def execute_with_retry[T](
+async def execute_with_retry(  # noqa: UP047
     operation: Callable[[], Awaitable[T]],
     max_retries: int = 3,
     base_delay: float = 1.0,
