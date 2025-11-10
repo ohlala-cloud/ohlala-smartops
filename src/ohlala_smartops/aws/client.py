@@ -31,6 +31,8 @@ from ohlala_smartops.utils import throttled_aws_call
 
 logger: Final = logging.getLogger(__name__)
 
+T = TypeVar("T")
+
 
 class AWSClientWrapper:
     """Wrapper for boto3 clients with throttling and error handling.
