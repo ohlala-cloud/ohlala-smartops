@@ -65,9 +65,7 @@ class AWSClientWrapper:
         """
         self.service_name = service_name
         self.region = region
-        self._client: BaseClient = boto3.client(  # type: ignore[call-overload]
-            service_name, region_name=region, **kwargs
-        )
+        self._client: BaseClient = boto3.client(service_name, region_name=region, **kwargs)
         logger.info(f"Initialized AWS {service_name} client for region {region or 'default'}")
 
     async def call(self, operation: str, **kwargs: Any) -> Any:
