@@ -327,7 +327,10 @@ def create_aws_client(
     return AWSClientWrapper(service_name, region, **kwargs)
 
 
-async def execute_with_retry(  # noqa: UP047
+T = TypeVar("T")
+
+
+async def execute_with_retry(
     operation: Callable[[], Awaitable[T]],
     max_retries: int = 3,
     base_delay: float = 1.0,
