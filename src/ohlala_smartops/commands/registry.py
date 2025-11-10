@@ -13,6 +13,7 @@ from ohlala_smartops.commands.commands_list import CommandsListCommand
 from ohlala_smartops.commands.costs import CostsCommand
 from ohlala_smartops.commands.exec import ExecCommand
 from ohlala_smartops.commands.find_by_tags import FindByTagsCommand
+from ohlala_smartops.commands.health import HealthDashboardCommand
 from ohlala_smartops.commands.help import HelpCommand
 from ohlala_smartops.commands.history import HistoryCommand
 from ohlala_smartops.commands.instance_details import InstanceDetailsCommand
@@ -75,6 +76,8 @@ def register_commands(message_handler: "MessageHandler") -> None:
         TagCommand,
         UntagCommand,
         FindByTagsCommand,
+        # Phase 7B: Health Dashboard
+        HealthDashboardCommand,
     ]
 
     logger.info(f"Registering {len(command_classes)} commands with message handler")
