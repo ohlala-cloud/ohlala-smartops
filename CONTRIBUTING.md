@@ -63,6 +63,34 @@ pre-commit install
 pre-commit install --hook-type commit-msg
 ```
 
+### Docker Development (Alternative)
+
+If you prefer to develop using Docker:
+
+```bash
+# Build the development image
+docker-compose build
+
+# Start the bot in development mode
+docker-compose up
+
+# Run tests in container
+docker-compose exec ohlala-bot pytest
+
+# Access shell in container
+docker-compose exec ohlala-bot bash
+
+# Stop services
+docker-compose down
+```
+
+For hot-reloading code changes, uncomment the volume mount in `docker-compose.yml`:
+
+```yaml
+volumes:
+  - ./src:/app/src:ro
+```
+
 ## Coding Standards
 
 We maintain strict coding standards to ensure code quality and consistency. Please review [CLAUDE.md](CLAUDE.md) for detailed development guidelines.
