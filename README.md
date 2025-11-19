@@ -3,8 +3,10 @@
 > AI-powered AWS EC2 management bot using Claude (Bedrock) and Microsoft Teams
 
 [![CI](https://github.com/ohlala-cloud/ohlala-smartops/workflows/CI/badge.svg)](https://github.com/ohlala-cloud/ohlala-smartops/actions)
+[![Docker](https://github.com/ohlala-cloud/ohlala-smartops/workflows/Build%20and%20Publish%20Docker%20Image/badge.svg)](https://github.com/ohlala-cloud/ohlala-smartops/actions)
 [![codecov](https://codecov.io/gh/ohlala-cloud/ohlala-smartops/branch/main/graph/badge.svg)](https://codecov.io/gh/ohlala-cloud/ohlala-smartops)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Docker Image](https://img.shields.io/badge/docker-ghcr.io-blue.svg)](https://github.com/ohlala-cloud/ohlala-smartops/pkgs/container/ohlala-smartops)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -29,12 +31,36 @@ Perfect for DevOps teams, system administrators, and cloud engineers who want to
 
 ## Quick Start
 
+### Docker (Recommended)
+
+The fastest way to get started is with Docker:
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/ohlala-cloud/ohlala-smartops:latest
+
+# Run with your configuration
+docker run -d \
+  --name ohlala-smartops \
+  -p 8000:8000 \
+  -e TEAMS_APP_ID="your-app-id" \
+  -e TEAMS_APP_PASSWORD="your-app-password" \
+  -e AWS_REGION="us-east-1" \
+  ghcr.io/ohlala-cloud/ohlala-smartops:latest
+
+# Check status
+docker logs ohlala-smartops
+```
+
+For production deployments, see the [Deployment Guide](docs/DEPLOYMENT.md).
+
 ### Prerequisites
 
-- Python 3.13 or higher
-- AWS Account with Bedrock access (Claude model access required)
-- Microsoft Teams workspace with app installation permissions
-- Azure Bot registration (for Teams integration)
+- **For Docker**: Docker 20.10+ or Docker Desktop
+- **For Development**: Python 3.13 or higher
+- **AWS Account** with Bedrock access (Claude model access required)
+- **Microsoft Teams** workspace with app installation permissions
+- **Azure Bot** registration (for Teams integration)
 
 ## Installation
 
