@@ -149,6 +149,9 @@ ignore = [
     "ARG",      # Unused function arguments in tests
     "PLR2004",  # Magic values in tests
 ]
+"src/ohlala_smartops/aws/client.py" = [
+    "UP",       # pyupgrade rules conflict with mypy strict type checking
+]
 "src/ohlala_smartops/commands/health/**/*.py" = [
     "ARG002",   # Unused context parameter (reserved for future use/API compatibility)
     "E501",     # Line too long in user-facing strings and formatted output

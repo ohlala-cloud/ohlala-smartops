@@ -554,11 +554,7 @@ class TestCardBuilder:
         """Test dashboard card with explicitly empty disk list."""
         builder = CardBuilder()
         instance = {"name": "server", "instance_id": "i-no-disks", "type": "t3.micro"}
-        metrics = {
-            "disk_usage": {
-                "disks": []  # Explicitly empty
-            }
-        }
+        metrics = {"disk_usage": {"disks": []}}  # Explicitly empty
 
         card = builder.build_health_dashboard_card(instance, metrics)
         assert card is not None
