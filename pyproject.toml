@@ -152,6 +152,9 @@ ignore = [
 "src/ohlala_smartops/aws/client.py" = [
     "UP",       # pyupgrade rules conflict with mypy strict type checking
 ]
+"src/ohlala_smartops/bot/messages.py" = [
+    "PLC0415",  # Import not at top (local imports to avoid circular dependencies)
+]
 "src/ohlala_smartops/commands/health/**/*.py" = [
     "ARG002",   # Unused context parameter (reserved for future use/API compatibility)
     "E501",     # Line too long in user-facing strings and formatted output
