@@ -31,15 +31,15 @@ def _get_initialized_components() -> tuple[Any, Any]:
     Raises:
         RuntimeError: If components are not yet initialized.
     """
-    # Import here to avoid circular imports
-    from ohlala_smartops.bot import app
+    # Import module (not the app variable) to avoid circular imports
+    import ohlala_smartops.bot.app as app_module
 
-    if app.adapter is None or app.bot is None:
+    if app_module.adapter is None or app_module.bot is None:
         raise RuntimeError(
             "Bot components not initialized. Ensure the application has started properly."
         )
 
-    return app.adapter, app.bot
+    return app_module.adapter, app_module.bot
 
 
 @router.post("/messages", status_code=status.HTTP_200_OK)
@@ -252,12 +252,12 @@ def get_state_manager() -> Any:
         >>> state_manager = get_state_manager()
         >>> state = await state_manager.get_state(conversation_id)
     """
-    # Import here to avoid circular imports
-    from ohlala_smartops.bot import app
+    # Import module (not the app variable) to avoid circular imports
+    import ohlala_smartops.bot.app as app_module
 
-    if app.state_manager is None:
+    if app_module.state_manager is None:
         raise RuntimeError(
             "State manager not initialized. Ensure the application has started properly."
         )
 
-    return app.state_manager
+    return app_module.state_manager

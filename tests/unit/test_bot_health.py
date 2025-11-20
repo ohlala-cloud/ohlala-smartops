@@ -1,7 +1,7 @@
 """Tests for health check endpoints."""
 
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,10 +12,16 @@ from ohlala_smartops.bot.app import create_app
 @pytest.fixture
 def client() -> TestClient:
     """Create a test client for the FastAPI app."""
-    # Mock the adapter and OhlalaBot creation to avoid Bot Framework initialization
+    # Mock all initialization to avoid Bot Framework dependencies
     with (
-        patch("ohlala_smartops.bot.messages.create_adapter", return_value=MagicMock()),
-        patch("ohlala_smartops.bot.messages.OhlalaBot"),
+        patch("ohlala_smartops.bot.app.Settings"),
+        patch("ohlala_smartops.bot.app.create_adapter"),
+        patch("ohlala_smartops.bot.app.create_state_manager"),
+        patch("ohlala_smartops.bot.app.MCPManager"),
+        patch("ohlala_smartops.bot.app.BedrockClient"),
+        patch("ohlala_smartops.bot.app.WriteOperationManager"),
+        patch("ohlala_smartops.bot.app.AsyncCommandTracker"),
+        patch("ohlala_smartops.bot.app.OhlalaBot"),
     ):
         app = create_app()
         return TestClient(app)
