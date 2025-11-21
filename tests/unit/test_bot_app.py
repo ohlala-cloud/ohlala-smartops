@@ -144,6 +144,60 @@ class TestLifespanManagement:
             mock_mcp.close.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_lifespan_mcp_initialized_flag_false(self) -> None:
+        """Test MCP initialization when _initialized flag is False."""
+        mock_app = MagicMock(spec=FastAPI)
+
+        with (
+            patch("ohlala_smartops.bot.app.Settings") as mock_settings,
+            patch("ohlala_smartops.bot.app.create_adapter"),
+            patch("ohlala_smartops.bot.app.create_state_manager"),
+            patch("ohlala_smartops.bot.app.MCPManager") as mock_mcp_class,
+            patch("ohlala_smartops.bot.app.BedrockClient"),
+            patch("ohlala_smartops.bot.app.WriteOperationManager") as mock_write_op_class,
+            patch("ohlala_smartops.bot.app.AsyncCommandTracker") as mock_tracker_class,
+            patch("ohlala_smartops.bot.app.OhlalaBot"),
+        ):
+            # Setup mocks
+            mock_settings_instance = MagicMock()
+            mock_settings_instance.aws_region = "us-east-1"
+            mock_settings_instance.microsoft_app_id = "test-app-id"
+            mock_settings_instance.microsoft_app_type = "SingleTenant"
+            mock_settings_instance.mcp_aws_api_url = "http://localhost:8080"
+            mock_settings_instance.bedrock_model_id = "anthropic.claude-3-sonnet"
+            mock_settings.return_value = mock_settings_instance
+
+            # MCP initializes but _initialized flag is False
+            mock_mcp = MagicMock()
+            mock_mcp._initialized = False
+            mock_mcp.initialize = AsyncMock()
+            mock_mcp.list_available_tools = AsyncMock(return_value=[])
+            mock_mcp.close = AsyncMock()
+            mock_mcp_class.return_value = mock_mcp
+
+            mock_write_op = MagicMock()
+            mock_write_op.start = AsyncMock()
+            mock_write_op.stop = AsyncMock()
+            mock_write_op_class.return_value = mock_write_op
+
+            mock_tracker = MagicMock()
+            mock_tracker.start = AsyncMock()
+            mock_tracker.stop = AsyncMock()
+            mock_tracker_class.return_value = mock_tracker
+
+            # Should continue without error
+            async with lifespan(mock_app):
+                # Verify MCP initialization was attempted
+                mock_mcp.initialize.assert_called_once()
+                # list_available_tools should not be called when _initialized is False
+                mock_mcp.list_available_tools.assert_not_called()
+
+            # Verify shutdown still works
+            mock_tracker.stop.assert_called_once()
+            mock_write_op.stop.assert_called_once()
+            mock_mcp.close.assert_called_once()
+
+    @pytest.mark.asyncio
     async def test_lifespan_shutdown_handles_errors_gracefully(self) -> None:
         """Test that shutdown errors don't prevent cleanup of other components."""
         mock_app = MagicMock(spec=FastAPI)
@@ -258,6 +312,34 @@ class TestModuleLevelComponents:
             assert hasattr(app_module, "bedrock_client")
             assert hasattr(app_module, "write_op_manager")
             assert hasattr(app_module, "command_tracker")
+
+
+class TestExceptionHandler:
+    """Test suite for global exception handler."""
+
+    @pytest.mark.asyncio
+    async def test_global_exception_handler(self) -> None:
+        """Test that global exception handler returns proper JSON response."""
+        with patch("ohlala_smartops.bot.app.lifespan"):
+            app = create_app()
+
+            # Get the exception handler
+            exception_handlers = app.exception_handlers
+            # The handler should be registered for Exception
+            assert Exception in exception_handlers
+
+            # Create a mock request and exception
+            mock_request = MagicMock()
+            test_exception = Exception("Test error")
+
+            # Call the handler
+            handler = exception_handlers[Exception]
+            response = await handler(mock_request, test_exception)
+
+            # Verify response
+            assert response.status_code == 500
+            assert "error" in response.body.decode()
+            assert "Internal server error" in response.body.decode()
 
 
 class TestIntegration:
