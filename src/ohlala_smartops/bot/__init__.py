@@ -11,7 +11,6 @@ from ohlala_smartops.bot.messages import (
     get_adapter,
     get_handler,
     get_state_manager,
-    initialize_bot_services,
 )
 from ohlala_smartops.bot.state import (
     ConversationStateManager,
@@ -40,5 +39,4 @@ __all__ = [
     "get_adapter",
     "get_handler",
     "get_state_manager",
-    "initialize_bot_services",
 ]

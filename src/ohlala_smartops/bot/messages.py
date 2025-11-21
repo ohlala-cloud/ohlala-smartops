@@ -5,36 +5,41 @@ activities from Microsoft Teams, routing them to appropriate handlers,
 and managing conversation state.
 """
 
-import contextlib
 import logging
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from fastapi import APIRouter, Header, HTTPException, Request, Response, status
 
-from ohlala_smartops.bot.adapter import create_adapter
-from ohlala_smartops.bot.teams_bot import OhlalaBot
-from ohlala_smartops.config.settings import Settings
+if TYPE_CHECKING:
+    from ohlala_smartops.bot.teams_bot import OhlalaBot
 
 logger = logging.getLogger(__name__)
 
 # Create router for message endpoints
 router = APIRouter()
 
-# Initialize global instances
-# These will be replaced with proper dependency injection in production
-# Use lazy initialization to avoid issues during testing
-_adapter: Any | None = None
-_handler: Any | None = None
 
+def _get_initialized_components() -> tuple[Any, Any]:
+    """Get initialized components from the main app.
 
-def _ensure_initialized() -> None:
-    """Ensure bot services are initialized."""
-    global _adapter, _handler  # noqa: PLW0603
-    if _adapter is None:
-        _adapter = create_adapter()
-    if _handler is None:
-        # Use OhlalaBot which has command registration (Phase 6)
-        _handler = OhlalaBot()
+    This function retrieves the adapter and bot instances that were
+    initialized during application startup in app.py's lifespan function.
+
+    Returns:
+        Tuple of (adapter, bot) instances.
+
+    Raises:
+        RuntimeError: If components are not yet initialized.
+    """
+    # Import module (not the app variable) to avoid circular imports
+    import ohlala_smartops.bot.app as app_module
+
+    if app_module.adapter is None or app_module.bot is None:
+        raise RuntimeError(
+            "Bot components not initialized. Ensure the application has started properly."
+        )
+
+    return app_module.adapter, app_module.bot
 
 
 @router.post("/messages", status_code=status.HTTP_200_OK)
@@ -70,9 +75,8 @@ async def handle_messages(
             "conversation": {...}
         }
     """
-    _ensure_initialized()
-    assert _adapter is not None
-    assert _handler is not None
+    # Get initialized components from the main app
+    adapter, bot = _get_initialized_components()
 
     try:
         # Get the request body as JSON
@@ -91,11 +95,10 @@ async def handle_messages(
             Args:
                 turn_context: Turn context from Bot Framework.
             """
-            assert _handler is not None
-            await _handler.on_turn(turn_context)
+            await bot.on_turn(turn_context)
 
         # Process activity with authentication
-        response = await _adapter.process_activity(
+        response = await adapter.process_activity(
             activity=body,
             auth_header=authorization,
             logic=bot_logic,
@@ -176,8 +179,8 @@ async def send_proactive_message(request: Request) -> dict[str, str]:
             "message": "Hello from bot!"
         }
     """
-    _ensure_initialized()
-    assert _adapter is not None
+    # Get initialized components from the main app
+    adapter, _ = _get_initialized_components()
 
     try:
         body = await request.json()
@@ -192,7 +195,7 @@ async def send_proactive_message(request: Request) -> dict[str, str]:
             )
 
         # Send proactive message
-        await _adapter.send_proactive_message(conversation_reference, message)
+        await adapter.send_proactive_message(conversation_reference, message)
 
         logger.info("Sent proactive message to conversation")
 
@@ -221,12 +224,11 @@ def get_adapter() -> Any:
         >>> adapter = get_adapter()
         >>> await adapter.process_activity(...)
     """
-    _ensure_initialized()
-    assert _adapter is not None
-    return _adapter
+    adapter, _ = _get_initialized_components()
+    return adapter
 
 
-def get_handler() -> OhlalaBot:
+def get_handler() -> "OhlalaBot":
     """Get the global bot handler instance.
 
     Returns:
@@ -236,9 +238,8 @@ def get_handler() -> OhlalaBot:
         >>> handler = get_handler()
         >>> await handler.on_message_activity(turn_context)
     """
-    _ensure_initialized()
-    assert _handler is not None
-    return cast(OhlalaBot, _handler)
+    _, bot = _get_initialized_components()
+    return cast("OhlalaBot", bot)
 
 
 def get_state_manager() -> Any:
@@ -251,34 +252,12 @@ def get_state_manager() -> Any:
         >>> state_manager = get_state_manager()
         >>> state = await state_manager.get_state(conversation_id)
     """
-    _ensure_initialized()
-    assert _handler is not None
-    return _handler.state_manager
+    # Import module (not the app variable) to avoid circular imports
+    import ohlala_smartops.bot.app as app_module
 
+    if app_module.state_manager is None:
+        raise RuntimeError(
+            "State manager not initialized. Ensure the application has started properly."
+        )
 
-def initialize_bot_services(settings: Settings | None = None) -> None:
-    """Initialize or reinitialize bot services.
-
-    This function allows updating the global adapter and handler
-    instances with new settings or configuration.
-
-    Args:
-        settings: Application settings. If None, loads from environment.
-
-    Example:
-        >>> initialize_bot_services(custom_settings)
-    """
-    global _adapter, _handler  # noqa: PLW0603
-
-    _adapter = create_adapter(settings)
-    # Use OhlalaBot which has command registration (Phase 6)
-    _handler = OhlalaBot()
-
-    logger.info("Bot services initialized with commands registered")
-
-
-# Ensure services are initialized on module import (but lazily)
-# This allows tests to mock before initialization
-# Initialization may fail in test environment - that's OK
-with contextlib.suppress(Exception):
-    _ensure_initialized()
+    return app_module.state_manager
